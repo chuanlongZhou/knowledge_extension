@@ -1,0 +1,17 @@
+{
+  "name": "pkm-nexus",
+  "version": "0.4.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "test:browser": "node tests/browser.mjs",
+    "test:media-browser": "node tests/media-browser.mjs",
+    "test:types-browser": "node tests/types-browser.mjs",
+    "build": "node scripts/build.mjs"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "^6.2.4",
+    "playwright": "^1.56.0"
+  }
+}
