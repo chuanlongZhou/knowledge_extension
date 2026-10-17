@@ -1,0 +1,378 @@
+{
+  "schemaVersion": 1,
+  "mode": "offline",
+  "startedAt": "2026-10-15T15:53:45.870Z",
+  "extensionVersion": "0.5.2",
+  "environment": {
+    "platform": "win32",
+    "websiteAccess": "测试扩展副本预授网站权限；首次授权弹窗由权限回归单独验证",
+    "microphone": "虚拟麦克风；不是人的声音",
+    "sync": "MockDrive；不连接 Google；交接传输为测试桥"
+  },
+  "cases": [
+    {
+      "id": "N01",
+      "group": "普通记录",
+      "title": "直接捕获当前网页",
+      "expected": "保存一条普通记录，标题与来源 URL 正确；没有选中文字时不自动抓取全文。",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "打开wiki页面并确认可见内容",
+          "expected": "页面主体可见，未将错误页当作业务页面",
+          "actual": "页面主体可见，未将错误页当作业务页面",
+          "status": "passed",
+          "image": "images/offline-n01-01.png",
+          "sha256": "5bca23df6ebb197c0c0587687e45288c1351d895b9d45cb0ef2ed26e1aa1d750"
+        },
+        {
+          "action": "点击捕获当前网页，进入可编辑草稿",
+          "expected": "来源为 Wiki；未选字时正文为空",
+          "actual": "来源为 Wiki；未选字时正文为空",
+          "status": "passed",
+          "image": "images/offline-n01-02.png",
+          "sha256": "feff563c3e369364505238c66cd1c1a04befef8c3455d5dc7c4900147ef4ff46"
+        },
+        {
+          "action": "保存到收件箱并核对持久化结果",
+          "expected": "保存一条记录；ID、类型与来源/附件正确",
+          "actual": "note；来源 1；附件 0",
+          "status": "passed",
+          "image": "images/offline-n01-03.png",
+          "sha256": "ce6422a22c5200a7f17a099e9867546bb20542d8c38cbed659c590f75c51aef8"
+        }
+      ]
+    },
+    {
+      "id": "N02",
+      "group": "普通记录",
+      "title": "直接添加文字",
+      "expected": "文字保存完整；重新打开不丢失，记录 ID 不变。",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "输入普通文字笔记",
+          "expected": "正文和标题可编辑，草稿留在本机",
+          "actual": "正文和标题可编辑，草稿留在本机",
+          "status": "passed",
+          "image": "images/offline-n02-01.png",
+          "sha256": "f63f45d47d73f522351b39bea14c35cadd1aead97a4313534426dfd84dabf84e"
+        },
+        {
+          "action": "保存到收件箱并核对持久化结果",
+          "expected": "保存一条记录；ID、类型与来源/附件正确",
+          "actual": "note；来源 0；附件 0",
+          "status": "passed",
+          "image": "images/offline-n02-02.png",
+          "sha256": "da9d11aa79cb6fa5c6a04823b9ade7a0a001c3d05c94ae82ee71acf5937dfdad"
+        },
+        {
+          "action": "重新打开已保存笔记",
+          "expected": "正文逐字一致，编辑原记录",
+          "actual": "正文逐字一致，编辑原记录",
+          "status": "passed",
+          "image": "images/offline-n02-03.png",
+          "sha256": "5606265c1c02a69f1d83d18e23aef98a4af500398bb3dabc2a038c41820cc0d3"
+        }
+      ]
+    },
+    {
+      "id": "N03",
+      "group": "普通记录",
+      "title": "文字加音频",
+      "expected": "存在非空、可播放的音频附件；正文、附件和记录 ID 保留。自动化使用虚拟麦克风，真人麦克风另验。",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "开始录音，等待至少两个持久化音频片段",
+          "expected": "界面处于录音状态；虚拟麦克风产生真实 MediaRecorder 数据",
+          "actual": "界面处于录音状态；虚拟麦克风产生真实 MediaRecorder 数据",
+          "status": "passed",
+          "image": "images/offline-n03-01.png",
+          "sha256": "c171a64d9c0c648c483b584e7654ae546fabdc2458c600d04bd9cbe7361a0678"
+        },
+        {
+          "action": "停止录音并实际播放",
+          "expected": "音频播放器时间前进，文字和音频属于同一条草稿",
+          "actual": "音频播放器时间前进，文字和音频属于同一条草稿",
+          "status": "passed",
+          "image": "images/offline-n03-02.png",
+          "sha256": "f01d5fad7e620cbada3c45fd1218625c38f08e519b372b5542475779bc014e1a"
+        },
+        {
+          "action": "保存到收件箱并核对持久化结果",
+          "expected": "保存一条记录；ID、类型与来源/附件正确",
+          "actual": "note；来源 0；附件 1",
+          "status": "passed",
+          "image": "images/offline-n03-03.png",
+          "sha256": "8cc440fef6409e7afc8e72676fb001a03c55ff6fc510bdc137425bb2fe94f95d"
+        }
+      ]
+    },
+    {
+      "id": "N04",
+      "group": "普通记录",
+      "title": "网页加文字、音频和图片",
+      "expected": "同一条记录同时包含网页来源、文字、图片和可播放音频；没有拆成多条记录。",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "打开chetna页面并确认可见内容",
+          "expected": "页面主体可见，未将错误页当作业务页面",
+          "actual": "页面主体可见，未将错误页当作业务页面",
+          "status": "passed",
+          "image": "images/offline-n04-01.png",
+          "sha256": "fac5f9b6fcdb348fec4a72cdc1a62baee5742fc75dfc2c66d2042dfefa2129e3"
+        },
+        {
+          "action": "开始录音，等待至少两个持久化音频片段",
+          "expected": "界面处于录音状态；虚拟麦克风产生真实 MediaRecorder 数据",
+          "actual": "界面处于录音状态；虚拟麦克风产生真实 MediaRecorder 数据",
+          "status": "passed",
+          "image": "images/offline-n04-02.png",
+          "sha256": "7bfb0a38c878fa3329813d79a455e2d157dfb2be8277fc90dca9fa945acfec35"
+        },
+        {
+          "action": "预览网页来源、文字、图片和音频",
+          "expected": "一条草稿同时具有四类内容",
+          "actual": "一条草稿同时具有四类内容",
+          "status": "passed",
+          "image": "images/offline-n04-03.png",
+          "sha256": "159e2f404286d76daec4449d145429661e8258c3528f05c21d4aca1865681d56"
+        },
+        {
+          "action": "保存到收件箱并核对持久化结果",
+          "expected": "保存一条记录；ID、类型与来源/附件正确",
+          "actual": "note；来源 1；附件 2",
+          "status": "passed",
+          "image": "images/offline-n04-04.png",
+          "sha256": "ec6a85a26a2e4d34c538ae6541e48a756dec36eb42e4d1d83cd681af8cfcb4f4"
+        }
+      ]
+    },
+    {
+      "id": "P01",
+      "group": "网页快照",
+      "title": "Wiki 页面快照",
+      "expected": "生成非空、可解码的 PNG；保存来源 URL。快照仅是当前可见区域。",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "打开wiki页面并确认可见内容",
+          "expected": "页面主体可见，未将错误页当作业务页面",
+          "actual": "页面主体可见，未将错误页当作业务页面",
+          "status": "passed",
+          "image": "images/offline-p01-01.png",
+          "sha256": "5bca23df6ebb197c0c0587687e45288c1351d895b9d45cb0ef2ed26e1aa1d750"
+        },
+        {
+          "action": "捕获当前可见网页区域",
+          "expected": "可解码的 PNG 预览与实际页面相符",
+          "actual": "可解码的 PNG 预览与实际页面相符",
+          "status": "passed",
+          "image": "images/offline-p01-02.png",
+          "sha256": "a5bc602cd8fb00af502fea4e8884b0b0e67915e790233185e1513aaa53b20f16"
+        },
+        {
+          "action": "保存到收件箱并核对持久化结果",
+          "expected": "保存一条记录；ID、类型与来源/附件正确",
+          "actual": "snapshot；来源 1；附件 1",
+          "status": "passed",
+          "image": "images/offline-p01-03.png",
+          "sha256": "3706c4790b211e12ff020bb48e787bb4f48bc63fc0e0a5b5eaba6911c82535ff"
+        },
+        {
+          "action": "重新打开快照",
+          "expected": "已保存的图片仍可离线预览",
+          "actual": "已保存的图片仍可离线预览",
+          "status": "passed",
+          "image": "images/offline-p01-04.png",
+          "sha256": "8f6b5df9ccb1967740539cf3811158131291a065355666da68dc23355d618250"
+        }
+      ]
+    },
+    {
+      "id": "P02",
+      "group": "网页快照",
+      "title": "Bilibili 视频页面快照",
+      "expected": "PNG 展示视频页当前可见内容；不录制、不下载视频本体。受限视频画面可能无法捕获，需记录实际结果。",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "打开bilibili页面并确认可见内容",
+          "expected": "页面主体可见，未将错误页当作业务页面",
+          "actual": "页面主体可见，未将错误页当作业务页面",
+          "status": "passed",
+          "image": "images/offline-p02-01.png",
+          "sha256": "939caa4492017faf484a56a2c5c91f0b461b6b5576c729d5403d3bd5d68aae69"
+        },
+        {
+          "action": "捕获当前可见网页区域",
+          "expected": "可解码的 PNG 预览与实际页面相符",
+          "actual": "可解码的 PNG 预览与实际页面相符",
+          "status": "passed",
+          "image": "images/offline-p02-02.png",
+          "sha256": "485a148c97a78d6657c97aa97ce084c84034fb6fe5ae8709191911166353b9bc"
+        },
+        {
+          "action": "保存到收件箱并核对持久化结果",
+          "expected": "保存一条记录；ID、类型与来源/附件正确",
+          "actual": "snapshot；来源 1；附件 1",
+          "status": "passed",
+          "image": "images/offline-p02-03.png",
+          "sha256": "383af4e9fcc65db58d4caf9d9b8209bfe3b29b6e41582199518dfe833e7d6da9"
+        },
+        {
+          "action": "重新打开快照",
+          "expected": "已保存的图片仍可离线预览",
+          "actual": "已保存的图片仍可离线预览",
+          "status": "passed",
+          "image": "images/offline-p02-04.png",
+          "sha256": "8eb20e6a2c8c4e4289b20a5e4c5d87d92b990a9def7a63264c2c9643992166b3"
+        }
+      ]
+    },
+    {
+      "id": "P03",
+      "group": "网页快照",
+      "title": "CHETNA 页面快照",
+      "expected": "截图与当前页面一致；保留 CHETNA 来源；不把加载页算作完整地图验证。",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "打开chetna页面并确认可见内容",
+          "expected": "页面主体可见，未将错误页当作业务页面",
+          "actual": "页面主体可见，未将错误页当作业务页面",
+          "status": "passed",
+          "image": "images/offline-p03-01.png",
+          "sha256": "fac5f9b6fcdb348fec4a72cdc1a62baee5742fc75dfc2c66d2042dfefa2129e3"
+        },
+        {
+          "action": "捕获当前可见网页区域",
+          "expected": "可解码的 PNG 预览与实际页面相符",
+          "actual": "可解码的 PNG 预览与实际页面相符",
+          "status": "passed",
+          "image": "images/offline-p03-02.png",
+          "sha256": "8aae7de9f2a6220667edc6594e237abffafc8867c7a9dd54ee88d4073e431d46"
+        },
+        {
+          "action": "保存到收件箱并核对持久化结果",
+          "expected": "保存一条记录；ID、类型与来源/附件正确",
+          "actual": "snapshot；来源 1；附件 1",
+          "status": "passed",
+          "image": "images/offline-p03-03.png",
+          "sha256": "af1e81b33a79640fc3b6645b9a4b7aeee531c6c6211ccb224208470b207f3cd6"
+        },
+        {
+          "action": "重新打开快照",
+          "expected": "已保存的图片仍可离线预览",
+          "actual": "已保存的图片仍可离线预览",
+          "status": "passed",
+          "image": "images/offline-p03-04.png",
+          "sha256": "4bee579617dc584a8e86aff79e66a25691c432ab438985b9e58128c4bcc65630"
+        }
+      ]
+    },
+    {
+      "id": "T01",
+      "group": "Todo / Idea",
+      "title": "工作主题 Todo",
+      "expected": "两项工作待办保留；第一项完成状态保留。",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "添加Todo主题组",
+          "expected": "主题项目与分割线按输入顺序显示",
+          "actual": "主题项目与分割线按输入顺序显示",
+          "status": "passed",
+          "image": "images/offline-t01-01.png",
+          "sha256": "596427706f6a0361974cfc44bb22e7b593e2cc24bd8b81c5657778e738506bfb"
+        },
+        {
+          "action": "保存后核对同一份全局清单",
+          "expected": "已有主题、完成状态和同一 ID 都保留",
+          "actual": "已有主题、完成状态和同一 ID 都保留",
+          "status": "passed",
+          "image": "images/offline-t01-02.png",
+          "sha256": "28a612d9ad57b46a9d5562ca53cbdf5c7b2e4aaddb837fdb55e894f2f8518d74"
+        }
+      ]
+    },
+    {
+      "id": "T02",
+      "group": "Todo / Idea",
+      "title": "生活主题 Todo",
+      "expected": "四项待办与分割线共存，不创建第二份全局清单。",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "添加Todo主题组",
+          "expected": "主题项目与分割线按输入顺序显示",
+          "actual": "主题项目与分割线按输入顺序显示",
+          "status": "passed",
+          "image": "images/offline-t02-01.png",
+          "sha256": "96f9bcee72806b0a424b9b89158aeceed146fedb6f39649ed11fe4d59226b707"
+        },
+        {
+          "action": "保存后核对同一份全局清单",
+          "expected": "已有主题、完成状态和同一 ID 都保留",
+          "actual": "已有主题、完成状态和同一 ID 都保留",
+          "status": "passed",
+          "image": "images/offline-t02-02.png",
+          "sha256": "da588d9c37689d36bd314ea5e3213e8e1d30f7378b4bd0acd3448b9860e0057d"
+        }
+      ]
+    },
+    {
+      "id": "T03",
+      "group": "Todo / Idea",
+      "title": "学习主题 Idea",
+      "expected": "两条学习灵感为 bullet，没有完成复选框。",
+      "status": "failed",
+      "steps": [
+        {
+          "action": "添加Idea主题组",
+          "expected": "主题项目与分割线按输入顺序显示",
+          "actual": "主题项目与分割线按输入顺序显示",
+          "status": "passed",
+          "image": "images/offline-t03-01.png",
+          "sha256": "8a3e43b78246ea32b4f9d9f50622a0b5aecaaab379bb8d3fbc7353c5fea03fff"
+        },
+        {
+          "action": "记录本轮阻塞或失败状态",
+          "expected": "两条学习灵感为 bullet，没有完成复选框。",
+          "actual": "locator.waitFor: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#records').filter({ hasText: '[学习] 用图谱整理阅读' }) to be visible\u001b[22m\n",
+          "status": "failed",
+          "image": "images/offline-t03-02.png",
+          "sha256": "fac5f9b6fcdb348fec4a72cdc1a62baee5742fc75dfc2c66d2042dfefa2129e3"
+        }
+      ],
+      "reason": "locator.waitFor: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#records').filter({ hasText: '[学习] 用图谱整理阅读' }) to be visible\u001b[22m\n"
+    }
+  ],
+  "errors": [],
+  "browserVersion": "156.0.8078.4",
+  "finishedAt": "2026-10-15T15:55:24.239Z",
+  "summary": {
+    "passed": 9,
+    "failed": 1,
+    "blocked": 0,
+    "notRun": [
+      "T04",
+      "G01",
+      "G02",
+      "O01",
+      "O02",
+      "O03",
+      "O04",
+      "D01",
+      "D02",
+      "D03",
+      "D04",
+      "D05",
+      "D06",
+      "D07",
+      "H01"
+    ]
+  }
+}

@@ -1,0 +1,218 @@
+{
+  "schemaVersion": 1,
+  "mode": "live",
+  "startedAt": "2026-10-15T15:52:21.283Z",
+  "extensionVersion": "0.5.2",
+  "environment": {
+    "platform": "win32",
+    "websiteAccess": "测试扩展副本预授网站权限；首次授权弹窗由权限回归单独验证",
+    "microphone": "虚拟麦克风；不是人的声音",
+    "sync": "MockDrive；不连接 Google；交接传输为测试桥"
+  },
+  "cases": [
+    {
+      "id": "N01",
+      "group": "普通记录",
+      "title": "直接捕获当前网页",
+      "expected": "保存一条普通记录，标题与来源 URL 正确；没有选中文字时不自动抓取全文。",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "打开wiki页面并确认可见内容",
+          "expected": "页面主体可见，未将错误页当作业务页面",
+          "actual": "页面主体可见，未将错误页当作业务页面",
+          "status": "passed",
+          "image": "images/live-n01-01.png",
+          "sha256": "5dddf954a1bde3b7dd909fa87b1e6704903350debce7a19e7381645865203b99"
+        },
+        {
+          "action": "点击捕获当前网页，进入可编辑草稿",
+          "expected": "来源为 Wiki；未选字时正文为空",
+          "actual": "来源为 Wiki；未选字时正文为空",
+          "status": "passed",
+          "image": "images/live-n01-02.png",
+          "sha256": "2210f472f68688e2c95a1fd2aa5945c17e1a577d7e6836e511a9049deb8ac7df"
+        },
+        {
+          "action": "保存到收件箱并核对持久化结果",
+          "expected": "保存一条记录；ID、类型与来源/附件正确",
+          "actual": "note；来源 1；附件 0",
+          "status": "passed",
+          "image": "images/live-n01-03.png",
+          "sha256": "0310182a3d6c46521e237ac77174c7ed88b4462654c77a5ad12d439e10fef222"
+        }
+      ]
+    },
+    {
+      "id": "N04",
+      "group": "普通记录",
+      "title": "网页加文字、音频和图片",
+      "expected": "同一条记录同时包含网页来源、文字、图片和可播放音频；没有拆成多条记录。",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "打开chetna页面并确认可见内容",
+          "expected": "页面主体可见，未将错误页当作业务页面",
+          "actual": "页面主体可见，未将错误页当作业务页面",
+          "status": "passed",
+          "image": "images/live-n04-01.png",
+          "sha256": "6af6d2160e29a0cc745e6da029865ac16238015f75552c6bc5f5b1c7590b80be"
+        },
+        {
+          "action": "开始录音，等待至少两个持久化音频片段",
+          "expected": "界面处于录音状态；虚拟麦克风产生真实 MediaRecorder 数据",
+          "actual": "界面处于录音状态；虚拟麦克风产生真实 MediaRecorder 数据",
+          "status": "passed",
+          "image": "images/live-n04-02.png",
+          "sha256": "76dc032d49e808a0921c997a6c8f867b1cbbfac907be66e2ab9cbfdedd42990b"
+        },
+        {
+          "action": "预览网页来源、文字、图片和音频",
+          "expected": "一条草稿同时具有四类内容",
+          "actual": "一条草稿同时具有四类内容",
+          "status": "passed",
+          "image": "images/live-n04-03.png",
+          "sha256": "f5d321df4ae1285098ecbb8550d321c2e7b8560829491687cb5e89cb73c0f834"
+        },
+        {
+          "action": "保存到收件箱并核对持久化结果",
+          "expected": "保存一条记录；ID、类型与来源/附件正确",
+          "actual": "note；来源 1；附件 2",
+          "status": "passed",
+          "image": "images/live-n04-04.png",
+          "sha256": "bf26b9e649e86d87e55cf4e4982564aa81ccd2bd5d97c963a45fdc5616e4e26c"
+        }
+      ]
+    },
+    {
+      "id": "P01",
+      "group": "网页快照",
+      "title": "Wiki 页面快照",
+      "expected": "生成非空、可解码的 PNG；保存来源 URL。快照仅是当前可见区域。",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "打开wiki页面并确认可见内容",
+          "expected": "页面主体可见，未将错误页当作业务页面",
+          "actual": "页面主体可见，未将错误页当作业务页面",
+          "status": "passed",
+          "image": "images/live-p01-01.png",
+          "sha256": "da95399656e9a40e5135d03e5fb41d923d2930302d71ffe3ae98c7de509fb055"
+        },
+        {
+          "action": "捕获当前可见网页区域",
+          "expected": "可解码的 PNG 预览与实际页面相符",
+          "actual": "可解码的 PNG 预览与实际页面相符",
+          "status": "passed",
+          "image": "images/live-p01-02.png",
+          "sha256": "07d38b7455f40461664e84fea010d4a4776d15742acc3e028d1dbbac71afabe7"
+        },
+        {
+          "action": "保存到收件箱并核对持久化结果",
+          "expected": "保存一条记录；ID、类型与来源/附件正确",
+          "actual": "snapshot；来源 1；附件 1",
+          "status": "passed",
+          "image": "images/live-p01-03.png",
+          "sha256": "7b5b4178187d0df900d25f593dd7092f3ad5e897c89f9d5d6db00c1f480fa14d"
+        },
+        {
+          "action": "重新打开快照",
+          "expected": "已保存的图片仍可离线预览",
+          "actual": "已保存的图片仍可离线预览",
+          "status": "passed",
+          "image": "images/live-p01-04.png",
+          "sha256": "b3e268b1a73741e87e7ba8eb9573b6277a446560d9993f25d59994f495fc11cc"
+        }
+      ]
+    },
+    {
+      "id": "P02",
+      "group": "网页快照",
+      "title": "Bilibili 视频页面快照",
+      "expected": "PNG 展示视频页当前可见内容；不录制、不下载视频本体。受限视频画面可能无法捕获，需记录实际结果。",
+      "status": "blocked",
+      "steps": [
+        {
+          "action": "记录本轮阻塞或失败状态",
+          "expected": "PNG 展示视频页当前可见内容；不录制、不下载视频本体。受限视频画面可能无法捕获，需记录实际结果。",
+          "actual": "真实页面未能就绪：locator.waitFor: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('h1, .video-info-title, #bilibili-player').first() to be visible\u001b[22m\n\u001b[2m    - waiting for \"https://www.bilibili.com/?spm_id_from=333.788.selfDef.errorpage\" navigation ",
+          "status": "blocked",
+          "image": "images/live-p02-01.png",
+          "sha256": "278fa46a6de106fb596759fc5eb69992d09a7ab6bc66512818e7e4db2615c556"
+        }
+      ],
+      "reason": "真实页面未能就绪：locator.waitFor: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('h1, .video-info-title, #bilibili-player').first() to be visible\u001b[22m\n\u001b[2m    - waiting for \"https://www.bilibili.com/?spm_id_from=333.788.selfDef.errorpage\" navigation "
+    },
+    {
+      "id": "P03",
+      "group": "网页快照",
+      "title": "CHETNA 页面快照",
+      "expected": "截图与当前页面一致；保留 CHETNA 来源；不把加载页算作完整地图验证。",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "打开chetna页面并确认可见内容",
+          "expected": "页面主体可见，未将错误页当作业务页面",
+          "actual": "页面主体可见，未将错误页当作业务页面",
+          "status": "passed",
+          "image": "images/live-p03-01.png",
+          "sha256": "97ee4316488a5eaedc08151667c8abfe61d273be28dcc3741f1f84087ff9dbb8"
+        },
+        {
+          "action": "捕获当前可见网页区域",
+          "expected": "可解码的 PNG 预览与实际页面相符",
+          "actual": "可解码的 PNG 预览与实际页面相符",
+          "status": "passed",
+          "image": "images/live-p03-02.png",
+          "sha256": "fa4fcfa05110645ce74dc573ed38a9ee5343dda7f5d82d8e162389316782686a"
+        },
+        {
+          "action": "保存到收件箱并核对持久化结果",
+          "expected": "保存一条记录；ID、类型与来源/附件正确",
+          "actual": "snapshot；来源 1；附件 1",
+          "status": "passed",
+          "image": "images/live-p03-03.png",
+          "sha256": "cc49d385429c59cf921cb27129ed0f0bc68726eb3de387d47fcb50a2fb4a3b38"
+        },
+        {
+          "action": "重新打开快照",
+          "expected": "已保存的图片仍可离线预览",
+          "actual": "已保存的图片仍可离线预览",
+          "status": "passed",
+          "image": "images/live-p03-04.png",
+          "sha256": "b9286307995299d674c4be33fa9d62273ff248c981dbe3304c3d59c743a488de"
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "browserVersion": "156.0.8078.4",
+  "finishedAt": "2026-10-15T15:53:20.262Z",
+  "summary": {
+    "passed": 4,
+    "failed": 0,
+    "blocked": 1,
+    "notRun": [
+      "N02",
+      "N03",
+      "T01",
+      "T02",
+      "T03",
+      "T04",
+      "G01",
+      "G02",
+      "O01",
+      "O02",
+      "O03",
+      "O04",
+      "D01",
+      "D02",
+      "D03",
+      "D04",
+      "D05",
+      "D06",
+      "D07",
+      "H01"
+    ]
+  }
+}

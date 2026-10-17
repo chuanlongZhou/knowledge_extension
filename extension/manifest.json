@@ -1,27 +1,56 @@
 {
   "manifest_version": 3,
   "name": "PKM Nexus · 个人知识收件箱",
-  "version": "0.4.0",
-  "description": "快捷收集、本地整理，手动同步到自己的 GitHub 私有仓库。",
+  "version": "0.7.3",
+  "description": "快捷收集、本地整理，通过 Windows 配套程序同步到自己的 Google Drive。",
   "minimum_chrome_version": "120",
-  "icons": {"16": "icons/icon-16.png", "32": "icons/icon-32.png", "48": "icons/icon-48.png", "128": "icons/icon-128.png"},
-  "permissions": ["storage", "unlimitedStorage", "tabs", "activeTab", "scripting", "contextMenus", "sidePanel", "favicon"],
-  "host_permissions": ["<all_urls>"],
-  "background": {"service_worker": "background.js", "type": "module"},
-  "action": {"default_title": "打开知识收件箱"},
-  "side_panel": {"default_path": "sidepanel.html"},
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "permissions": [
+    "storage",
+    "alarms",
+    "unlimitedStorage",
+    "tabs",
+    "activeTab",
+    "scripting",
+    "contextMenus",
+    "sidePanel",
+    "favicon",
+    "nativeMessaging"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "打开知识收件箱"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
   "options_page": "dashboard.html#settings",
   "commands": {
     "capture": {
-      "suggested_key": {"default": "Alt+Shift+S", "mac": "Alt+Shift+S"},
+      "suggested_key": {
+        "default": "Alt+Shift+S",
+        "mac": "Alt+Shift+S"
+      },
       "description": "保存选中文字或当前网页"
     },
     "dashboard": {
-      "suggested_key": {"default": "Alt+Shift+K", "mac": "Alt+Shift+K"},
+      "suggested_key": {
+        "default": "Alt+Shift+K",
+        "mac": "Alt+Shift+K"
+      },
       "description": "打开整理页"
     }
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'self' https: http:; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self'; base-uri 'none'"
-  }
+    "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'self' https: http:; img-src 'self' data: blob: https: http:; media-src 'self' blob:; style-src 'self'; base-uri 'none'"
+  },
+  "optional_host_permissions": ["<all_urls>"]
 }
