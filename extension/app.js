@@ -60,6 +60,7 @@ const state = {
   tag: '',
   type: '',
   project: '',
+  projectMembership: '',
   limit: panel ? 20 : 60,
   selected: new Set(),
   projects: [],
@@ -107,7 +108,8 @@ function refreshSoon(delay = 100) {
 }
 function persistView() {
   if (!viewStorageKey) return;
-  const { view, query, tag, type, project, limit, examplesExpanded, cardModes } = state;
+  const { view, query, tag, type, project, projectMembership, limit, examplesExpanded, cardModes } =
+    state;
   chrome.storage.session
     .set({
       [viewStorageKey]: {
@@ -116,6 +118,7 @@ function persistView() {
         tag,
         type,
         project,
+        projectMembership,
         limit,
         examplesExpanded,
         cardModes,
@@ -211,7 +214,7 @@ $('app').innerHTML = `
       <div class="page-eyebrow">PERSONAL KNOWLEDGE INBOX</div>
       <div class="page-heading"><div><h1 id="heading"></h1><p id="description" class="description"></p></div><div id="sync-status" class="sync-status"></div></div>
       <div id="notices"></div>
-      <div class="filters"><label class="checkbox-line"><input id="select-all" type="checkbox">选择本页</label><div id="type-filter" class="filter-tabs" role="tablist" aria-label="记录类型"></div><select id="tag-filter" aria-label="标签筛选"></select><span class="spacer"></span><div id="project-actions"></div><small id="result-count" class="muted"></small></div>
+      <div class="filters"><label class="checkbox-line"><input id="select-all" type="checkbox">选择本页</label><div id="type-filter" class="filter-tabs" role="tablist" aria-label="记录类型"></div><select id="tag-filter" aria-label="标签筛选"></select><select id="project-membership-filter" aria-label="是否在项目" hidden><option value="">全部记录</option><option value="in-project">已在项目</option><option value="no-project">未在项目</option></select><span class="spacer"></span><div id="project-actions"></div><small id="result-count" class="muted"></small></div>
       <div id="selection-bar" class="selection-bar" hidden></div>
       <section id="builtin-examples" aria-label="内置示例" hidden></section>
       <section id="records" class="records" aria-label="记录列表"></section>
@@ -290,6 +293,12 @@ $('tag-filter').addEventListener('change', () => {
   state.selected.clear();
   refreshSoon();
 });
+$('project-membership-filter').addEventListener('change', () => {
+  state.projectMembership = $('project-membership-filter').value;
+  state.limit = panel ? 20 : 60;
+  state.selected.clear();
+  refreshSoon();
+});
 $('select-all').addEventListener('change', () => {
   if ($('select-all').checked)
     state.items.filter((m) => m.type !== 'list').forEach((m) => state.selected.add(m.id));
@@ -365,6 +374,7 @@ async function saveLocal() {
   }
 }
 function setView(view, project = '') {
+  if (state.view !== view || project) state.projectMembership = '';
   state.view = view;
   state.project = project;
   state.tag = '';
@@ -410,6 +420,7 @@ async function refresh() {
     tag: state.tag,
     type: state.type,
     project: state.project,
+    projectMembership: state.view === 'organized' && !state.project ? state.projectMembership : '',
     ids: state.view === 'duplicates' ? duplicates : null,
     pendingIds,
     pinnedIds,
@@ -548,10 +559,7 @@ async function refresh() {
       );
       node.dataset.tag = tag;
       node.classList.toggle('active', tag === state.tag);
-      node.append(
-        el('span', { class: 'tag-group-name' }, tag),
-        el('span', { class: 'count' }, String(active.filter((m) => m.tags.includes(tag)).length)),
-      );
+      node.append(el('span', { class: 'tag-group-name' }, tag));
       node.draggable = true;
       node.addEventListener('dragstart', (event) => {
         event.dataTransfer.setData('application/x-pkm-tag', tag);
@@ -571,6 +579,8 @@ async function refresh() {
     option('', '全部标签'),
     ...tags.map((tag) => option(tag, tag, tag === state.tag)),
   );
+  $('project-membership-filter').hidden = state.view !== 'organized' || !!state.project;
+  $('project-membership-filter').value = state.projectMembership;
   $('result-count').textContent = `${results.items.length}${results.hasMore ? '+' : ''} 条记录`;
   $('load-more').hidden = !results.hasMore;
   $('project-actions').replaceChildren();
@@ -2568,6 +2578,7 @@ async function initialize() {
       'tag',
       'type',
       'project',
+      'projectMembership',
       'limit',
       'examplesExpanded',
       'cardModes',
@@ -2575,6 +2586,8 @@ async function initialize() {
       if (saved[key] !== undefined) state[key] = saved[key];
     $('search').value = state.query;
   }
+  if (!['', 'in-project', 'no-project'].includes(state.projectMembership))
+    state.projectMembership = '';
   await migrateTodos(db);
   db.onChange((kind) => {
     if (!['draft', 'companion'].includes(kind)) refreshSoon();

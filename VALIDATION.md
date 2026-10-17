@@ -1,5 +1,11 @@
 # PKM Nexus 验证记录
 
+## 未发布：标签、项目归属筛选与六套配色
+
+- ESLint 通过；项目相关单元测试 20 项通过，包括筛选与搜索、标签、类型及置顶组合，65 条以上记录的分页，以及已删除和不存在项目的归属处理。
+- 隔离 Chromium 的 `npm run test:customization-browser` 通过：标签不显示计数、已整理筛选与刷新恢复、全部 21 个 HEX、六套逐一预览和取消恢复、主题在整理页 / 360px 侧栏 / 帮助页保存应用、字体保留与窄屏无横向溢出。
+- 截图与报告在 test-results/organized-project-filter.png、six-theme-presets.png、six-theme-presets-narrow.png、ocean-mist-dashboard.png 和 ui-customization-report.json。生成了不含 Companion 安装包的扩展预览；本轮未执行完整发行构建、真实 Google 授权或全量 Windows Companion 测试。
+
 ## 2026-10-17：0.7.3 恢复新版下载及实际下载包验证
 
 - 完整插件内置 Companion 0.4.1 便携 ZIP，设置恢复“下载 Windows 本地应用”，不再显示安全停发文案。旧 0.4.0 禁止再分发，新版构建检查当前扫描、原厂运行时签名、全部 EXE 覆盖及文件 SHA-256；自编译应用未签名状态如实记录，不再因此关闭下载。

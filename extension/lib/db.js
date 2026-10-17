@@ -569,6 +569,7 @@ export class Database {
     query = '',
     tag = '',
     project = '',
+    projectMembership = '',
     keywordProject = null,
     ids = null,
     pendingIds = null,
@@ -585,6 +586,7 @@ export class Database {
         view,
         tag,
         project,
+        projectMembership,
         keywordProject,
         ids: matches,
         pendingIds,
@@ -594,6 +596,15 @@ export class Database {
         offset,
       });
     }
+    const filterMembership =
+      view === 'organized' && ['in-project', 'no-project'].includes(projectMembership);
+    const activeProjectIds = filterMembership
+      ? new Set(
+          (await this.allCatalog())
+            .filter((m) => m.type === 'project' && !m.deleted_at)
+            .map((m) => m.id),
+        )
+      : null;
     const db = await this.open();
     const tx = db.transaction(['catalog', 'search', 'records']);
     const result = [];
@@ -616,6 +627,9 @@ export class Database {
           (tag && !(m.tags || []).includes(tag)) ||
           (view === 'favorites' && !m.favorite) ||
           (project && !(m.project_ids || []).includes(project)) ||
+          (filterMembership &&
+            (m.project_ids || []).some((id) => activeProjectIds.has(id)) !==
+              (projectMembership === 'in-project')) ||
           (type && m.type !== type)
         ) {
           next();

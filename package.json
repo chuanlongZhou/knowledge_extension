@@ -35,7 +35,8 @@
     "test:companion-browser": "node tests/companion-browser.mjs",
     "test:desktop": "node tests/desktop-smoke.mjs",
     "test:projects-browser": "node tests/projects-browser.mjs",
-    "test:theme-browser": "node tests/theme-browser.mjs"
+    "test:theme-browser": "node tests/theme-browser.mjs",
+    "test:customization-browser": "node tests/ui-customization-browser.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

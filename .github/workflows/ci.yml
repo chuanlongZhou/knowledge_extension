@@ -26,6 +26,7 @@ jobs:
       - run: npm run test:collection-browser
       - run: npm run test:projects-browser
       - run: npm run test:theme-browser
+      - run: npm run test:customization-browser
       - run: node tests/package-smoke.mjs
       - run: node tests/companion-browser.mjs
       - run: npm run test:desktop
