@@ -1,0 +1,27 @@
+{
+  "mode": "guide",
+  "extensionVersion": "0.7.3",
+  "startedAt": "2026-10-17T18:42:37.848Z",
+  "cases": [
+    {
+      "id": "H01",
+      "status": "passed",
+      "steps": [
+        {
+          "action": "从整理页打开内置使用说明书",
+          "expected": "断网可读，目录和图片完整",
+          "actual": "56 张本地截图可解码；目录检索、Markdown 来源和侧栏入口均通过",
+          "status": "passed",
+          "image": "images/guide-h01-01.png"
+        },
+        {
+          "action": "查看可重复测试流程",
+          "expected": "标准步骤、矩阵和命令随包提供",
+          "actual": "测试矩阵可读，360px 无横向溢出；不执行 Markdown HTML 或脚本链接",
+          "status": "passed",
+          "image": "images/guide-h01-02.png"
+        }
+      ]
+    }
+  ]
+}

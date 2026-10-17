@@ -1,5 +1,7 @@
 node_modules/
 dist/
+extension/installers/
+companion/google-oauth.json
 test-results/
 *.log
 .env*

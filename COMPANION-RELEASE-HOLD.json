@@ -1,0 +1,8 @@
+{
+  "blocked": false,
+  "blockedVersions": ["0.4.0"],
+  "approvedVersion": "0.4.1",
+  "date": "2026-10-17",
+  "reason": "The old 0.4.0 Engine remains retired after the unresolved malware alert. User requested delivery of the repaired transparent-runtime 0.4.1. Package only after fresh antivirus coverage, original OpenJS runtime signature and file hashes are verified. Application Authenticode status is recorded accurately; unsigned application files alone do not disable download.",
+  "incident": "docs/SECURITY-2026-10-17.md"
+}

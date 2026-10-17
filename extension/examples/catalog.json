@@ -1,0 +1,316 @@
+{
+  "format": "pkm-nexus-examples",
+  "version": 1,
+  "examples": [
+    {
+      "id": "web",
+      "mode": "live",
+      "test": "N01",
+      "title": "网页链接",
+      "recordTitle": "【示例】Wiki：个人知识管理",
+      "description": "捕获网页标题和来源链接。没有选择文字时，正文可以为空。",
+      "record": {
+        "schema_version": 4,
+        "id": "33882a30-963a-4293-beee-7cc3533acafa",
+        "type": "note",
+        "title": "【示例】Wiki：个人知识管理",
+        "content": "",
+        "summary": "",
+        "tags": [
+          "内置示例"
+        ],
+        "project_ids": [],
+        "organization_state": "inbox",
+        "created_at": "2026-10-15T15:52:23.605Z",
+        "updated_at": "2026-10-15T15:52:25.762Z",
+        "deleted_at": null,
+        "sources": [
+          {
+            "url": "https://en.wikipedia.org/wiki/Personal_knowledge_management",
+            "title": "Personal knowledge management - Wikipedia",
+            "captured_at": "2026-10-15T15:52:23.605Z",
+            "kind": "web_page"
+          }
+        ],
+        "attachments": [],
+        "snapshot": null,
+        "list": [],
+        "url_list": []
+      },
+      "verification": {
+        "test": "N01",
+        "mode": "live",
+        "startedAt": "2026-10-15T15:52:21.283Z",
+        "recordedVersion": "0.5.2"
+      }
+    },
+    {
+      "id": "text",
+      "mode": "offline",
+      "test": "N02",
+      "title": "纯文字笔记",
+      "recordTitle": "【示例】本周学习计划",
+      "description": "直接写文字，保存后继续编辑；不需要打开网页。",
+      "record": {
+        "schema_version": 4,
+        "id": "6489fa28-eb6f-4e09-bb23-341c40bd8c22",
+        "type": "note",
+        "title": "【示例】本周学习计划",
+        "content": "先收集，再整理。周五回顾本周资料。",
+        "summary": "",
+        "tags": [
+          "内置示例"
+        ],
+        "project_ids": [],
+        "organization_state": "inbox",
+        "created_at": "2026-10-15T15:53:55.511Z",
+        "updated_at": "2026-10-15T15:53:55.735Z",
+        "deleted_at": null,
+        "sources": [],
+        "attachments": [],
+        "snapshot": null,
+        "list": [],
+        "url_list": []
+      },
+      "verification": {
+        "test": "N02",
+        "mode": "offline",
+        "startedAt": "2026-10-15T15:53:45.870Z",
+        "recordedVersion": "0.5.2"
+      }
+    },
+    {
+      "id": "audio",
+      "mode": "live",
+      "test": "N04",
+      "derive": "audio-only",
+      "title": "文字 + 录音",
+      "recordTitle": "【示例】用录音补充灵感",
+      "description": "文字与可播放音频属于同一条记录。本段是测试用虚拟麦克风声音，不是真人语音。",
+      "record": {
+        "schema_version": 4,
+        "id": "e8fa037e-c642-479a-9c42-357ceaf54264",
+        "type": "note",
+        "title": "【示例】用录音补充灵感",
+        "content": "用声音补充文字。\n\n[测试录音（虚拟麦克风）](assets/bd5d4868412e6e576bb72922a9e613ed6911c4decbdc78b5f0ea0b215d0c6ac5.webm)",
+        "summary": "",
+        "tags": [
+          "内置示例"
+        ],
+        "project_ids": [],
+        "organization_state": "inbox",
+        "created_at": "2026-10-15T15:52:29.955Z",
+        "updated_at": "2026-10-15T15:52:39.658Z",
+        "deleted_at": null,
+        "sources": [],
+        "attachments": [
+          {
+            "id": "bd5d4868412e6e576bb72922a9e613ed6911c4decbdc78b5f0ea0b215d0c6ac5",
+            "kind": "audio",
+            "name": "录音-2026-10-15-15-52-31.webm",
+            "mime_type": "audio/webm",
+            "size_bytes": 12925,
+            "sha256": "bd5d4868412e6e576bb72922a9e613ed6911c4decbdc78b5f0ea0b215d0c6ac5",
+            "path": "assets/bd5d4868412e6e576bb72922a9e613ed6911c4decbdc78b5f0ea0b215d0c6ac5.webm",
+            "created_at": "2026-10-15T15:52:33.335Z",
+            "duration_ms": 2096.2999999970198
+          }
+        ],
+        "snapshot": null,
+        "list": [],
+        "url_list": []
+      },
+      "verification": {
+        "test": "N04",
+        "mode": "live",
+        "startedAt": "2026-10-15T15:52:21.283Z",
+        "recordedVersion": "0.5.2"
+      }
+    },
+    {
+      "id": "mixed",
+      "mode": "live",
+      "test": "N04",
+      "title": "网页 + 文字 + 录音 + 图片",
+      "recordTitle": "【示例】CHETNA 城市排放页面阅读笔记",
+      "description": "已验证的 CHETNA 网页来源、文字、企鹅图片与测试录音放在同一条笔记里。录音来自虚拟麦克风。",
+      "record": {
+        "schema_version": 4,
+        "id": "add6ce23-d5d1-4ac8-96ec-78a1089853f5",
+        "type": "note",
+        "title": "【示例】CHETNA 城市排放页面阅读笔记",
+        "content": "记录城市排放地图的阅读思路。\n\n![penguin.png](assets/607d78d54d75c32376f1ff6dd14b5d02a3e1e312f2dcdbf24e70787c2df2f038.png)\n\n\n[录音-2026-10-15-15-52-31.webm](assets/bd5d4868412e6e576bb72922a9e613ed6911c4decbdc78b5f0ea0b215d0c6ac5.webm)\n",
+        "summary": "",
+        "tags": [
+          "内置示例"
+        ],
+        "project_ids": [],
+        "organization_state": "inbox",
+        "created_at": "2026-10-15T15:52:29.955Z",
+        "updated_at": "2026-10-15T15:52:39.658Z",
+        "deleted_at": null,
+        "sources": [
+          {
+            "url": "https://chetna-indian.netlify.app/",
+            "title": "Home | CHETNA",
+            "captured_at": "2026-10-15T15:52:29.955Z",
+            "kind": "web_page"
+          }
+        ],
+        "attachments": [
+          {
+            "id": "607d78d54d75c32376f1ff6dd14b5d02a3e1e312f2dcdbf24e70787c2df2f038",
+            "kind": "image",
+            "name": "penguin.png",
+            "mime_type": "image/png",
+            "size_bytes": 14140,
+            "sha256": "607d78d54d75c32376f1ff6dd14b5d02a3e1e312f2dcdbf24e70787c2df2f038",
+            "path": "assets/607d78d54d75c32376f1ff6dd14b5d02a3e1e312f2dcdbf24e70787c2df2f038.png",
+            "created_at": "2026-10-15T15:52:30.019Z",
+            "duration_ms": null
+          },
+          {
+            "id": "bd5d4868412e6e576bb72922a9e613ed6911c4decbdc78b5f0ea0b215d0c6ac5",
+            "kind": "audio",
+            "name": "录音-2026-10-15-15-52-31.webm",
+            "mime_type": "audio/webm",
+            "size_bytes": 12925,
+            "sha256": "bd5d4868412e6e576bb72922a9e613ed6911c4decbdc78b5f0ea0b215d0c6ac5",
+            "path": "assets/bd5d4868412e6e576bb72922a9e613ed6911c4decbdc78b5f0ea0b215d0c6ac5.webm",
+            "created_at": "2026-10-15T15:52:33.335Z",
+            "duration_ms": 2096.2999999970198
+          }
+        ],
+        "snapshot": null,
+        "list": [],
+        "url_list": []
+      },
+      "verification": {
+        "test": "N04",
+        "mode": "live",
+        "startedAt": "2026-10-15T15:52:21.283Z",
+        "recordedVersion": "0.5.2"
+      }
+    },
+    {
+      "id": "wiki-snapshot",
+      "mode": "live",
+      "test": "P01",
+      "title": "Wiki 页面快照",
+      "recordTitle": "【示例】Wiki 个人知识管理页面快照",
+      "description": "真实 Wiki 页面的可见区域 PNG；保留来源，离线可打开。",
+      "record": {
+        "schema_version": 4,
+        "id": "7dd9f925-b9c6-44a6-b853-de8d8e03565f",
+        "type": "snapshot",
+        "title": "【示例】Wiki 个人知识管理页面快照",
+        "content": "",
+        "summary": "",
+        "tags": [
+          "内置示例"
+        ],
+        "project_ids": [],
+        "organization_state": "inbox",
+        "created_at": "2026-10-15T15:52:41.611Z",
+        "updated_at": "2026-10-15T15:52:48.435Z",
+        "deleted_at": null,
+        "sources": [
+          {
+            "url": "https://en.wikipedia.org/wiki/Personal_knowledge_management",
+            "title": "Personal knowledge management - Wikipedia",
+            "captured_at": "2026-10-15T15:52:41.611Z",
+            "kind": "web_page"
+          }
+        ],
+        "attachments": [
+          {
+            "id": "63e9fb203280a25ef8f5e3008cdd23493c8cd9d123e221ffd081a565dcd3d6b6",
+            "kind": "image",
+            "name": "Personal knowledge management - Wikipedia.png",
+            "mime_type": "image/png",
+            "size_bytes": 158381,
+            "sha256": "63e9fb203280a25ef8f5e3008cdd23493c8cd9d123e221ffd081a565dcd3d6b6",
+            "path": "assets/63e9fb203280a25ef8f5e3008cdd23493c8cd9d123e221ffd081a565dcd3d6b6.png",
+            "created_at": "2026-10-15T15:52:41.736Z",
+            "duration_ms": null
+          }
+        ],
+        "snapshot": {
+          "url": "https://en.wikipedia.org/wiki/Personal_knowledge_management",
+          "title": "Personal knowledge management - Wikipedia",
+          "captured_at": "2026-10-15T15:52:41.611Z",
+          "format": "png",
+          "asset_id": "63e9fb203280a25ef8f5e3008cdd23493c8cd9d123e221ffd081a565dcd3d6b6"
+        },
+        "list": [],
+        "url_list": []
+      },
+      "verification": {
+        "test": "P01",
+        "mode": "live",
+        "startedAt": "2026-10-15T15:52:21.283Z",
+        "recordedVersion": "0.5.2"
+      }
+    },
+    {
+      "id": "chetna-snapshot",
+      "mode": "live",
+      "test": "P03",
+      "title": "CHETNA 页面快照",
+      "recordTitle": "【示例】CHETNA 首页快照",
+      "description": "真实 CHETNA 首页的可见区域 PNG；展示截图能力，不是交互地图归档。",
+      "record": {
+        "schema_version": 4,
+        "id": "f712cb90-08c4-41eb-94ca-0e96084ae0ea",
+        "type": "snapshot",
+        "title": "【示例】CHETNA 首页快照",
+        "content": "",
+        "summary": "",
+        "tags": [
+          "内置示例"
+        ],
+        "project_ids": [],
+        "organization_state": "inbox",
+        "created_at": "2026-10-15T15:53:14.154Z",
+        "updated_at": "2026-10-15T15:53:15.571Z",
+        "deleted_at": null,
+        "sources": [
+          {
+            "url": "https://chetna-indian.netlify.app/",
+            "title": "Home | CHETNA",
+            "captured_at": "2026-10-15T15:53:14.154Z",
+            "kind": "web_page"
+          }
+        ],
+        "attachments": [
+          {
+            "id": "97ee4316488a5eaedc08151667c8abfe61d273be28dcc3741f1f84087ff9dbb8",
+            "kind": "image",
+            "name": "Home - CHETNA.png",
+            "mime_type": "image/png",
+            "size_bytes": 250789,
+            "sha256": "97ee4316488a5eaedc08151667c8abfe61d273be28dcc3741f1f84087ff9dbb8",
+            "path": "assets/97ee4316488a5eaedc08151667c8abfe61d273be28dcc3741f1f84087ff9dbb8.png",
+            "created_at": "2026-10-15T15:53:14.287Z",
+            "duration_ms": null
+          }
+        ],
+        "snapshot": {
+          "url": "https://chetna-indian.netlify.app/",
+          "title": "Home | CHETNA",
+          "captured_at": "2026-10-15T15:53:14.154Z",
+          "format": "png",
+          "asset_id": "97ee4316488a5eaedc08151667c8abfe61d273be28dcc3741f1f84087ff9dbb8"
+        },
+        "list": [],
+        "url_list": []
+      },
+      "verification": {
+        "test": "P03",
+        "mode": "live",
+        "startedAt": "2026-10-15T15:52:21.283Z",
+        "recordedVersion": "0.5.2"
+      }
+    }
+  ]
+}

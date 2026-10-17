@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>PKM Nexus · 本地资料库</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <div class="shell">
+      <aside>
+        <div class="brand">◒ <strong>PKM Nexus</strong></div>
+        <p class="muted">本地资料，自由使用。</p>
+        <nav>
+          <button data-view="all" class="active">全部资料</button>
+          <button data-view="conflicts">待处理冲突</button>
+          <button data-view="trash">回收站</button>
+        </nav>
+        <div class="sidebar-bottom">
+          <p id="vault-label" class="muted"></p>
+          <button id="settings">设置与同步</button>
+          <button id="quit" class="subtle">关闭本地管理程序</button>
+        </div>
+      </aside>
+      <main>
+        <header>
+          <input
+            id="search"
+            type="search"
+            placeholder="搜索标题、正文、标签与来源…"
+            aria-label="搜索资料"
+          /><button id="refresh">刷新</button><button id="sync" class="primary">立即同步</button>
+        </header>
+        <div class="heading">
+          <div>
+            <p class="eyebrow">YOUR KNOWLEDGE, YOURS.</p>
+            <h1 id="heading">全部资料</h1>
+            <p id="count" class="muted"></p>
+          </div>
+          <p id="sync-status" class="muted"></p>
+        </div>
+        <p id="notice" role="status" hidden></p>
+        <section id="records" class="records"></section>
+        <div class="pagination">
+          <button id="previous">上一页</button><span id="page"></span
+          ><button id="next">下一页</button>
+        </div>
+      </main>
+    </div>
+    <dialog id="editor">
+      <form id="edit-form">
+        <div class="dialog-heading">
+          <h2 id="edit-heading">编辑资料</h2>
+          <button type="button" data-close>×</button>
+        </div>
+        <div id="conflict-versions"></div>
+        <label>标题<input id="title" maxlength="500" /></label
+        ><label>正文 / 备注<textarea id="content" rows="12" maxlength="1000000"></textarea></label
+        ><label>标签（逗号分隔）<input id="tags" /></label
+        ><label class="inline"><input id="organized" type="checkbox" />已整理</label>
+        <div id="structured"></div>
+        <div id="attachments"></div>
+        <details id="google-app-setup">
+          <summary>完整记录 JSON</summary>
+          <pre id="record-json"></pre>
+        </details>
+        <p id="edit-error" role="alert"></p>
+        <footer>
+          <button type="button" data-close>取消</button
+          ><button id="delete" type="button" class="danger">移入回收站</button
+          ><button type="submit" class="primary">保存修改</button>
+        </footer>
+      </form>
+    </dialog>
+    <dialog id="settings-dialog">
+      <div class="dialog-heading">
+        <h2>设置与同步</h2>
+        <button data-close>×</button>
+      </div>
+      <section>
+        <h3>本地资料库</h3>
+        <p class="muted">
+          记录保存在 JSON 文件中，readable 文件夹提供 Markdown
+          阅读视图。更改记录后可主动导入外部修改。
+        </p>
+        <label>资料库路径<input id="vault-path" /></label>
+        <div class="row">
+          <button id="choose-vault">使用此目录</button
+          ><button id="import-external">导入外部 JSON 修改</button>
+        </div>
+      </section>
+      <section>
+        <h3>连接浏览器扩展</h3>
+        <p class="muted">
+          在 chrome://extensions 开启开发者模式，复制 PKM Nexus 的扩展 ID。每台电脑只需配置一次。
+        </p>
+        <label
+          >Chrome 扩展 ID<input
+            id="extension-id"
+            placeholder="32 位小写字母"
+            maxlength="32" /></label
+        ><button id="register">连接此扩展</button>
+        <p id="registered" class="muted"></p>
+      </section>
+      <section>
+        <h3>自己的 Google Drive</h3>
+        <p class="muted">
+          点击登录，在 Google 页面选择你自己的账号。资料同步到该账号拥有的 Drive 资料库，
+          每位用户独立授权；应用开发者的 Google Cloud 项目只用于识别应用，不会接收你的资料。
+          两台电脑登录同一账号，选择同一个资料库。
+        </p>
+        <p id="google-account"></p>
+        <p id="google-status" class="muted"></p>
+        <div class="row">
+          <button id="connect-google" class="primary">登录自己的 Google 账号</button
+          ><button id="disconnect-google" class="subtle">断开并撤销授权</button>
+        </div>
+        <div class="row">
+          <select id="drive-folders" aria-label="Google Drive 资料库"></select
+          ><button id="load-folders">刷新资料库</button
+          ><button id="bind-folder">使用选中资料库</button>
+        </div>
+        <div class="row">
+          <input id="new-folder" value="PKM Nexus" aria-label="新资料库名称" /><button
+            id="create-folder"
+          >
+            创建新资料库
+          </button>
+        </div>
+        <p id="binding" class="muted"></p>
+        <details>
+          <summary>开发者配置（普通用户无需操作）</summary>
+          <p class="muted">
+            应用开发者统一启用 Drive API、创建“桌面应用”OAuth 客户端，并在构建时内置客户端配置。
+            这不是开发者的 Drive 授权，也不能内置任何用户令牌。公开使用前需完成 Google
+            的发布配置及适用验证。 Testing 模式只允许测试用户，离线授权通常 7 天失效。
+          </p>
+          <ol>
+            <li>
+              应用开发者在
+              <a
+                href="https://console.cloud.google.com/apis/library/drive.googleapis.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Google Cloud 启用 Drive API</a
+              >。
+            </li>
+            <li>
+              在
+              <a
+                href="https://console.cloud.google.com/auth/clients"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Google Auth Platform</a
+              >
+              配置品牌和受众，创建“桌面应用”OAuth 客户端，下载 JSON。
+            </li>
+            <li>
+              在下方导入即可在这台电脑测试。将同一个应用 JSON 放入项目 companion/google-oauth.json
+              后重新构建，即可让所有用户直接登录各自账号。
+            </li>
+          </ol>
+          <label
+            >本机开发测试：导入桌面 OAuth 客户端 JSON<input
+              id="oauth-file"
+              type="file"
+              accept=".json,application/json"
+          /></label>
+        </details>
+      </section>
+      <section>
+        <h3>自动同步</h3>
+        <label class="inline"
+          ><input id="auto-sync" type="checkbox" />允许每小时自动同步，并在登录后补同步</label
+        >
+        <p class="muted">
+          通过 Windows 任务计划执行，关闭 Chrome
+          后仍可同步已交接到本地的资料。关机、睡眠和断网期间不执行。关闭此开关会移除定时任务。
+        </p>
+      </section>
+      <section>
+        <h3>停止使用本地程序</h3>
+        <button id="disconnect-system" type="button">断开本机连接并关闭自动同步</button>
+        <p class="muted">
+          移除本程序的扩展连接和同步任务，保留资料库。随后可从托盘退出助手，再删除程序文件夹。
+        </p>
+      </section>
+      <p id="settings-error" role="alert"></p>
+      <footer><button data-close>完成</button></footer>
+    </dialog>
+  </body>
+</html>

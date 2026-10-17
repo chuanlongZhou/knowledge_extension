@@ -1,0 +1,69 @@
+{
+  "version": "0.5.4",
+  "recordedAt": "2026-10-15T18:50:14.359Z",
+  "coreTestsPassed": 84,
+  "scenarios": [
+    {
+      "report": "test-results/examples-browser-report.json",
+      "passed": 9,
+      "errors": [],
+      "externalRequests": 0
+    },
+    {
+      "report": "test-results/examples-built-report.json",
+      "passed": 9,
+      "errors": [],
+      "externalRequests": 0
+    },
+    {
+      "report": "test-results/websites-browser-report.json",
+      "passed": 5,
+      "errors": [],
+      "corsErrors": []
+    },
+    {
+      "report": "test-results/websites-built-report.json",
+      "passed": 5,
+      "errors": [],
+      "corsErrors": []
+    },
+    {
+      "report": "test-results/permissions-browser-report.json",
+      "passed": 7,
+      "errors": []
+    },
+    {
+      "report": "test-results/types-browser-report.json",
+      "passed": 13,
+      "errors": []
+    }
+  ],
+  "guide": {
+    "version": "0.5.4",
+    "cases": 25,
+    "screenshotReferences": 50,
+    "sourceLinks": "passed",
+    "pngHeaders": "passed",
+    "evidenceHashes": "passed",
+    "zipCrcAndResources": "passed",
+    "browserHelpUi": "passed",
+    "reason": "Static asset checks and the separately recorded H01 browser result are reported independently."
+  },
+  "evidence": [
+    {
+      "path": "extension/guide/images/fix054-examples-entry.png",
+      "sha256": "d2abd981aa8a6a4b5ddb8997f79f5d93aa2dda29fada8f88d8995c83c8be0b9a"
+    },
+    {
+      "path": "extension/guide/images/fix054-links-no-permission.png",
+      "sha256": "45643f142460cc032c317197b047cace901dfef40303919b144935deed189cf1"
+    }
+  ],
+  "artifact": {
+    "name": "PKM-Nexus-0.5.4.zip",
+    "bytes": 5403169,
+    "sha256": "1530dd30bbae4edc6e637acb41a18063fcb23d7fc28ae283bf5271be9aa0e00e",
+    "status": "examples-and-title-permissions-verified"
+  },
+  "scope": "Isolated browser regression. No live Bilibili request; no Google account, user Chrome or cloud sync validation."
+}

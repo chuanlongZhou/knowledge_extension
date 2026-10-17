@@ -1,17 +1,48 @@
 {
   "name": "pkm-nexus",
-  "version": "0.4.0",
+  "version": "0.7.3",
   "private": true,
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.js",
     "test:browser": "node tests/browser.mjs",
+    "test:ui-browser": "node tests/ui-interactions-browser.mjs",
+    "test:collection-browser": "node tests/collection-browser.mjs",
     "test:media-browser": "node tests/media-browser.mjs",
     "test:types-browser": "node tests/types-browser.mjs",
-    "build": "node scripts/build.mjs"
+    "build": "node scripts/build.mjs",
+    "prepare:extension": "node scripts/build.mjs --preview",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "test:stability-browser": "node tests/stability-browser.mjs",
+    "test:permissions-browser": "node tests/permissions-browser.mjs",
+    "test:websites-browser": "node tests/websites-browser.mjs",
+    "test:demo": "node scripts/run-demo.mjs",
+    "test:demo:live": "node scripts/run-demo.mjs --live",
+    "demo:manual": "node scripts/generate-manual.mjs",
+    "test:guide": "node tests/guide-browser.mjs",
+    "test:guide-assets": "node scripts/verify-demo-artifacts.mjs",
+    "test:examples": "node --test tests/examples.test.js",
+    "test:examples-browser": "node tests/examples-browser.mjs",
+    "examples:bundle": "node scripts/bundle-examples.mjs",
+    "demo:open": "node scripts/demo-preview.mjs",
+    "companion": "node companion/main.mjs --open",
+    "companion:serve": "node companion/main.mjs --serve",
+    "companion:sync": "node companion/main.mjs --sync",
+    "build:companion": "node scripts/build-companion.mjs",
+    "prepare:companion": "node scripts/prepare-companion.mjs",
+    "test:companion": "node --test tests/companion.test.js tests/companion-sync.test.js",
+    "test:companion-browser": "node tests/companion-browser.mjs",
+    "test:desktop": "node tests/desktop-smoke.mjs",
+    "test:projects-browser": "node tests/projects-browser.mjs",
+    "test:theme-browser": "node tests/theme-browser.mjs"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.12.0",
     "fake-indexeddb": "^6.2.4",
-    "playwright": "^1.56.0"
+    "globals": "^17.13.0",
+    "playwright": "^1.56.0",
+    "prettier": "^3.9.10"
   }
 }

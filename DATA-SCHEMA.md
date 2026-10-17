@@ -1,47 +1,47 @@
 # PKM Nexus 数据格式 v4
 
-实现版本：0.4.0。用户收集的内容只有四种类型，共用 Record 表。图片与录音是普通记录的附件；`purpose` 已移除。
+实现版本：0.7.0。用户收集的内容只有四种类型，共用 Record 表。图片与录音是普通记录的附件；`purpose` 已移除。
 
 ## 类型与对应界面
 
-| type | 中文入口 | 数据 / 界面 |
-| --- | --- | --- |
-| `note` | 普通记录 | Markdown、粘贴图片、主动录音、来源链接，可以同时存在于一条记录 |
-| `snapshot` | 网页快照 | URL + 当前可见页面的 PNG 图片；编辑器显示图片预览和下载入口 |
-| `list` | 清单 | 唯一清单，无名称；Todo / Idea 两个视图，分割线无文字；卡片可直接勾选 |
-| `website_group` | 网页组 | 多个网址组成一组，允许多组归类；每个网址可单独标记已读 |
+| type            | 中文入口 | 数据 / 界面                                                          |
+| --------------- | -------- | -------------------------------------------------------------------- |
+| `note`          | 普通记录 | Markdown、粘贴图片、主动录音、来源链接，可以同时存在于一条记录       |
+| `snapshot`      | 网页快照 | URL + 当前可见页面的 PNG 图片；编辑器显示图片预览和下载入口          |
+| `list`          | 清单     | 唯一清单，无名称；Todo / Idea 两个视图，分割线无文字；卡片可直接勾选 |
+| `website_group` | 网页组   | 多个网址组成一组，允许多组归类；每个网址可单独标记已读               |
 
 四个收集入口用 tab button 直接显示，不使用“类型”下拉。点击清单入口始终返回同一份清单。已有记录的编辑保持原 ID。
 
 ## Record 字段
 
-| 字段 | 类型 | 含义 |
-| --- | --- | --- |
-| `schema_version` | number | 新内容记录为 `4` |
-| `id` | string | 普通记录、快照、网页组使用 UUID；清单固定 `nexus-list` |
-| `type` | string | `note` / `snapshot` / `list` / `website_group` |
-| `title` | string | 标题，最多 500 字符；清单固定空字符串 |
-| `content` | string | Markdown 正文 / 备注，最多 1,000,000 字符 |
-| `summary` | string | 可选人工摘要，默认空字符串，最多 2,000 字符 |
-| `tags` | string[] | 标签，默认 `[]` |
-| `project_ids` | string[] | 关联项目 ID，默认 `[]` |
-| `organization_state` | string | `inbox` 未分类 / `organized` 已整理 |
-| `created_at` | string | ISO 8601 UTC 创建时间，编辑不变 |
-| `updated_at` | string | ISO UTC 修改时间 |
-| `deleted_at` | string / null | 回收站时间，正常为 `null` |
-| `sources` | Source[] | 来源列表，默认 `[]` |
-| `attachments` | Attachment[] | 原始文件描述，默认 `[]`，不放二进制或 Base64 |
-| `snapshot` | Snapshot / null | 网页快照专用；其他类型为 `null` |
-| `list` | ListItem[] | 清单专用；其他类型为 `[]` |
-| `url_list` | WebsiteItem[] | 网页组专用；其他类型为 `[]` |
+| 字段                 | 类型            | 含义                                                   |
+| -------------------- | --------------- | ------------------------------------------------------ |
+| `schema_version`     | number          | 普通内容兼容 `4`，新增组织字段使用 `5`                 |
+| `id`                 | string          | 普通记录、快照、网页组使用 UUID；清单固定 `nexus-list` |
+| `type`               | string          | `note` / `snapshot` / `list` / `website_group`         |
+| `title`              | string          | 标题，最多 500 字符；清单固定空字符串                  |
+| `content`            | string          | Markdown 正文 / 备注，最多 1,000,000 字符              |
+| `summary`            | string          | 可选人工摘要，默认空字符串，最多 2,000 字符            |
+| `tags`               | string[]        | 标签，默认 `[]`                                        |
+| `project_ids`        | string[]        | 关联项目 ID，默认 `[]`                                 |
+| `organization_state` | string          | `inbox` 未分类 / `organized` 已整理                    |
+| `created_at`         | string          | ISO 8601 UTC 创建时间，编辑不变                        |
+| `updated_at`         | string          | ISO UTC 修改时间                                       |
+| `deleted_at`         | string / null   | 回收站时间，正常为 `null`                              |
+| `sources`            | Source[]        | 来源列表，默认 `[]`                                    |
+| `attachments`        | Attachment[]    | 原始文件描述，默认 `[]`，不放二进制或 Base64           |
+| `snapshot`           | Snapshot / null | 网页快照专用；其他类型为 `null`                        |
+| `list`               | ListItem[]      | 清单专用；其他类型为 `[]`                              |
+| `url_list`           | WebsiteItem[]   | 网页组专用；其他类型为 `[]`                            |
 
-四种 v4 记录包含相同字段；专用字段必须与类型一致。没有 `purpose`、旧 `task_status`、`local_only` 或 `upload_enabled`。已保存记录等待用户主动同步；捕获草稿不会自动进入收件箱或上传。
+四种 v4 记录包含相同字段；专用字段必须与类型一致。没有 `purpose`、旧 `task_status`、`local_only` 或 `upload_enabled`。已保存记录在启用本地连接后自动交接到资料库；Google Drive 在立即同步或已启用的每小时任务中同步。捕获草稿不会自动进入收件箱或上传。
 
 ## Source
 
 `{ url, title, captured_at, kind }`
 
-URL 仅支持不含登录凭证的 HTTP / HTTPS；title 为来源标题；captured_at 为 ISO UTC 收集时间。kind 当前使用 `web_selection`、`web_page`、`manual`，保留旧来源类型。
+URL 仅支持不含登录凭证的 HTTP / HTTPS；title 为来源标题；captured_at 为 ISO UTC 收集时间。kind 当前使用 `web_selection`、`web_page`、`web_link`、`web_image`、`manual`，保留旧来源类型。链接和图片收集同时保留来源页面及目标 URL。
 
 ## Snapshot
 
@@ -58,7 +58,10 @@ URL 仅支持不含登录凭证的 HTTP / HTTPS；title 为来源标题；captur
 asset_id 对应 attachments 中 MIME 为 image/png、kind 为 image 的文件。Chrome captureVisibleTab 截取当前可见页面，保存 PNG 图片，不再保存完整网页。切换标签页或页面导航会停止本次截图；单文件最多 20 MiB。它是可见区域截图，不是自动滚动的整页长图。
 
 旧版本保存的 MHTML 仍可读取与导出，保留旧文件，界面标为旧版网页文件；新捕获只生成 PNG。
+
 ## ListItem：唯一清单的每一项
+
+0.7.0 的清单编辑器在 `content` 写入包含 `## Todo`、`## Idea` 的 Markdown 文本；`list` 是同一内容的稳定 ID 交互投影，保留条目 ID、完成状态及分隔线顺序。输入普通文字并按 Enter 自动形成条目，输入 `---` 并按 Enter 形成分隔线；保存、勾选和迁移旧待办时同时更新 Markdown。旧清单读取保持原哈希，导出时只有正文末尾尚未包含当前条目的完整 Markdown 才从投影补充，保留历史备注并避免重复输出。
 
 ```json
 {
@@ -70,13 +73,13 @@ asset_id 对应 attachments 中 MIME 为 image/png、kind 为 image 的文件。
 }
 ```
 
-| 字段 | 含义 |
-| --- | --- |
-| `id` | 稳定项目 ID |
-| `kind` | `item` 普通项 / `divider` 分割线 |
-| `text` | 项目文字，最多 5,000 字符；分割线固定空字符串 |
+| 字段          | 含义                                                                             |
+| ------------- | -------------------------------------------------------------------------------- |
+| `id`          | 稳定项目 ID                                                                      |
+| `kind`        | `item` 普通项 / `divider` 分割线                                                 |
+| `text`        | 项目文字，最多 5,000 字符；分割线固定空字符串                                    |
 | `is_checkbox` | true 属于 Todo，false 属于 Idea；分割线也用此字段标记所属视图，但不显示 checkbox |
-| `checked` | 待办是否完成；圆点与分割线固定 false |
+| `checked`     | 待办是否完成；圆点与分割线固定 false                                             |
 
 最多 5,000 项。选择 Todo 或 Idea 后添加项目或纯分割线，分别显示两种视图，仍然保存在同一条记录中。整份记录固定 ID 为 `nexus-list`；初始创建时间固定为功能发布日 `2026-10-13T00:00:00.000Z`，让不同电脑首次创建时使用相同文件路径。固定 ID 不允许用于其他类型。
 
@@ -102,18 +105,18 @@ id 为组内项目 ID；url 为 HTTP / HTTPS 链接，最多 8,000 字符；titl
 
 `{ id, kind, name, mime_type, size_bytes, sha256, path, created_at, duration_ms }`
 
-| 字段 | 含义 |
-| --- | --- |
-| `id` / `sha256` | 原始文件 SHA-256，二者一致 |
-| `kind` | `image`（含 PNG 快照） / `audio` / `snapshot`（仅旧版 MHTML） |
-| `name` | 显示或下载的文件名 |
-| `mime_type` | 如 image/png、audio/webm、application/x-mimearchive（旧版） |
-| `size_bytes` | 文件字节数，单附件最多 20 MiB |
-| `path` | `assets/<sha256>.<扩展名>`，仓库根目录相对路径 |
-| `created_at` | ISO UTC 创建时间 |
-| `duration_ms` | 本插件录音时长，毫秒；其他附件为 null |
+| 字段            | 含义                                                          |
+| --------------- | ------------------------------------------------------------- |
+| `id` / `sha256` | 原始文件 SHA-256，二者一致                                    |
+| `kind`          | `image`（含 PNG 快照） / `audio` / `snapshot`（仅旧版 MHTML） |
+| `name`          | 显示或下载的文件名                                            |
+| `mime_type`     | 如 image/png、audio/webm、application/x-mimearchive（旧版）   |
+| `size_bytes`    | 文件字节数，单附件最多 20 MiB                                 |
+| `path`          | `assets/<sha256>.<扩展名>`，资料库根目录相对路径              |
+| `created_at`    | ISO UTC 创建时间                                              |
+| `duration_ms`   | 本插件录音时长，毫秒；其他附件为 null                         |
 
-原文件独立保存在本机附件表 / GitHub assets 目录。图片使用 `![标题](assets/<hash>.png)`；录音使用 `[录音](assets/<hash>.webm)`。编辑器显示图片和播放器。音频文件添加入口已移除；旧备份中的音频继续兼容。
+原文件独立保存在浏览器附件表 / 本地资料库的 assets 目录。图片使用 `![标题](assets/<hash>.png)`；录音使用 `[录音](assets/<hash>.webm)`。编辑器显示图片和播放器。音频文件添加入口已移除；旧备份中的音频继续兼容。
 
 ## 标签页收集与关闭
 
@@ -126,27 +129,28 @@ id 为组内项目 ID；url 为 HTTP / HTTPS 链接，最多 8,000 字符；titl
 ## 存储、兼容与备份
 
 ```text
-data/YYYY/MM/<id>.json       内容记录（含回收站）和既有项目规则配置
-assets/<sha256>.<ext>        图片、录音、PNG 页面图片，以及旧版 MHTML 文件
-tombstones/<id>.json         最小删除标记
-index/global_index.json     可重建的轻量索引
+records/<前缀>/<id>.json     当前记录、回收站内容、项目与最小删除标记
+assets/<sha256>.<ext>        已下载图片、录音、PNG 与旧版 MHTML
+readable/<id>.md            可重建的 Markdown 阅读视图
+.nexus/revisions/           不可变修订及父版本关系
+.nexus/index.sqlite         本机索引与同步状态，不上传
 ```
 
-项目关键词规则继续作为独立旧版配置协议兼容，不是第五个收集类型。删除标记仅保留 schema_version、id、kind: tombstone、created_at、deleted_at，防止旧设备复活记录。
+项目为 v5 独立组织记录，不是第五个收集入口。旧项目关键词字段只做兼容读取，首次修改项目后移除。删除标记仅保留 schema_version、id、kind: tombstone、created_at、deleted_at，防止旧设备复活记录。
 
 兼容 v1 / v2 / v3：读取不改变旧哈希，编辑时升级为 v4，ID 与时间保留。旧 purpose 转为正文“旧版备注”。旧独立 todo 在打开、同步或导入后汇入唯一清单，原记录保留为普通记录，文字不丢弃。
 
-列表只读取元数据和有限项目预览；正文、全部项目及附件按操作读取。hash、baseHash、rev、dirty 属于本机同步状态，不属于 Record。Token 单独存储，不进入仓库或备份。
+列表只读取元数据和有限项目预览；正文、全部项目及附件按操作读取。hash、rev、dirty、companion 版本链接和游标属于本机状态，不属于 Record。Google 凭证由本地程序安全保存，不进入内容文件或备份。
 
-手动同步将记录、附件与索引放入同一 Git 提交。其他电脑先同步描述，用户加载或主动完整备份时才下载原文件。完整 ZIP 包含仓库数据、Markdown、草稿、待处理收集和附件；未完成录音与冲突快照放入 recovery 供人工恢复。缺失或校验失败的附件会停止打包。
+本地程序先上传附件，再发布引用修订和附件的不可变 Drive 批次；其他电脑先获取记录及附件描述，按需下载媒体。浏览器接收记录、版本链接、冲突集合与游标采用同一事务。完整 ZIP 包含记录、Markdown、草稿、待处理收集和附件；未完成录音放入 recovery。缺失或校验失败的附件会停止打包。
 
-升级同一个扩展请点击“重新加载”，不要先卸载；所有同步电脑请更新为 0.4.0。
+升级同一个扩展请点击“重新加载”，不要先卸载；所有同步电脑请更新为 0.7.0。
 
 实现依据：[Chrome pageCapture](https://developer.chrome.com/docs/extensions/reference/api/pageCapture)、[Chrome Tabs API](https://developer.chrome.com/docs/extensions/reference/api/tabs)。
 
 ## 网页标题和图标
 
-网址数据仍保存完整 URL，但网页组和已打开网页列表只显示图标与单行标题，不展开 URL。标题优先使用已有标签页标题；外部链接在用户添加时请求目标网页，只解析有限的 HTML head，优先 og:title / title。页面拒绝请求时使用拖入链接的文字，没有可用文字则用简短站点名。请求有 6 秒超时、512 KiB 读取上限，不加载网页脚本、视频或其他资源，不附带 GitHub Token。
+网址数据仍保存完整 URL，但网页组和已打开网页列表只显示图标与单行标题，不展开 URL。标题优先使用已有标签页标题；外部链接在用户添加时请求目标网页，只解析有限的 HTML head，优先 og:title / title。页面拒绝请求时使用拖入链接的文字，没有可用文字则用简短站点名。请求有 6 秒超时、512 KiB 读取上限，不加载网页脚本、视频或其他资源，不附带 Google 授权凭证。
 
 图标使用 Chrome / Edge 的 favicon 接口，缺少缓存时显示浏览器默认图标；不依赖外部图标服务。
 
@@ -155,3 +159,24 @@ index/global_index.json     可重建的轻量索引
 第一次录音打开可见的麦克风授权页。点击允许后请求浏览器授权，成功后关闭授权页并回到编辑器开始录音。已授权时直接录音；拒绝、取消、关闭或离开授权页会明确显示状态。提供独立的“麦克风设置”入口处理已被阻止的权限。只有主动开始录音才请求音频，录音期间显示状态与计时，停止后写入附件；每秒片段保存和中断恢复继续保留。
 
 当前实现依据：[captureVisibleTab](https://developer.chrome.com/docs/extensions/reference/api/tabs#method-captureVisibleTab)、[favicon 接口](https://developer.chrome.com/docs/extensions/how-to/ui/favicons)、[getUserMedia](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia)。
+
+## v5 项目、关系图与浏览状态（0.7.0）
+
+- 标签为单层 `tags: string[]`；内容记录通过 `project_ids: ID[]` 加入多个项目。
+- 项目使用 `schema_version: 5, type: project`，`project_ids: []`；`parent_project_id: ID | null` 表示唯一父项目。禁止自身父级、循环及不存在的父项目。
+- 项目描述保存在 `summary`（最多 2000 字），外观为可选 `appearance: {color: '#RRGGBB', icon: string}`，图标最多 16 字符。
+- `graph: {edges: [{id,source,target,label}], positions?: {[nodeId]: {x,y}}}`。每项目最多 10000 条边，说明最多 200 字；禁止自连、重复节点对与重复边 ID。坐标必须是有限数且绝对值不超过 100000。
+- 图节点由直接成员和直接子项目推导，不另存容易过期的 nodes 数组。子项目作为一个元素，不能连接其内部记录或其他项目记录。
+- `favorite?: boolean` 是记录喜爱状态；旧记录未设置时不补写字段，保持原哈希。
+- `UrlItem.removed_at?: ISODate | null` 标记网页的划线删除；保留条目、URL 与 ID，可恢复；被划线条目不计入未读，也不用于关闭浏览器标签页。
+- `graph.positions`、喜爱、项目描述及外观参与正常同步；空标签、标签颜色放在本机 UI 状态。
+- 备份与 Drive 修订记录格式支持 v1–v5。读取旧记录不改变哈希；新增字段时升级相应记录。所有同步电脑和 Companion 应使用本次配套版本。
+- 移出成员、删除或合并记录会与清理相关边在同一本机事务中提交。导入与 Companion 批量交接校验层级及图端点；不一致时停止并保留原数据。
+
+## 0.7.0 界面偏好与内联总结
+
+所有内容类型已共用 `summary`，图卡片直接编辑此字段（子项目为项目描述），最多 2000 字，参与正常同步。没有新增记录 schema。
+
+`chrome.storage.local.uiTheme` 保存主题模式、六种颜色、七个区域的字体和字号、导航行距；跨扩展页面应用。它属于本机偏好，不进入资料库记录或数据备份。标签外观只使用颜色，旧 `icon` 偏好忽略。标签改名原子更新记录、待处理收集、草稿与本机名称 / 颜色映射；仅修改颜色不改变记录修订。
+
+草稿 UI 可包含 `listEntryTodo`、`listEntryIdea`（未提交的一行输入），备份导入允许这两个字符串字段，仍清除旧浏览器标签页句柄。

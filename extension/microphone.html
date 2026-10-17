@@ -1,2 +1,24 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>允许麦克风 · PKM Nexus</title><link rel="stylesheet" href="styles.css"></head><body class="permission-page"><main class="permission-card"><img src="icons/penguin.png" alt="企鹅"><h1>允许使用麦克风</h1><p>点击下方按钮，再在浏览器的权限提示中选择“允许”。授权完成后会返回插件并开始录音。</p><p id="microphone-status" role="status" aria-live="polite">麦克风只会在你主动录音时使用。</p><div class="row"><button id="allow-microphone" class="button primary">允许麦克风</button><button id="cancel-microphone" class="button">取消</button></div><button id="microphone-settings" class="link-button">打开浏览器麦克风设置</button></main><script type="module" src="microphone.js"></script></body></html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>允许麦克风 · PKM Nexus</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="theme.css" />
+  </head>
+  <body class="permission-page">
+    <main class="permission-card">
+      <img src="icons/penguin.png" alt="企鹅" />
+      <h1>允许使用麦克风</h1>
+      <p>点击下方按钮，再在浏览器的权限提示中选择“允许”。授权完成后会返回插件并开始录音。</p>
+      <p id="microphone-status" role="status" aria-live="polite">麦克风只会在你主动录音时使用。</p>
+      <div class="row">
+        <button id="allow-microphone" class="button primary">允许麦克风</button
+        ><button id="cancel-microphone" class="button">取消</button>
+      </div>
+      <button id="microphone-settings" class="link-button">打开浏览器麦克风设置</button>
+    </main>
+    <script type="module" src="microphone.js"></script>
+  </body>
+</html>
