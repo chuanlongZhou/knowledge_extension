@@ -130,8 +130,6 @@ export class Database {
   changed(kind = 'records', detail) {
     this.channel?.postMessage({ kind, detail });
     this.listeners.forEach((fn) => fn(kind, detail));
-    if (kind === 'records' && globalThis.chrome?.runtime?.sendMessage)
-      chrome.runtime.sendMessage({ type: 'companion-queue' }).catch(() => {});
   }
   async close() {
     try {
@@ -170,6 +168,22 @@ export class Database {
         .getAll(IDBKeyRange.bound('companion:row:', 'companion:row:\uffff')),
     );
     return new Map(rows.map((r) => [r.key.slice('companion:row:'.length), r.value]));
+  }
+  async driveLinks() {
+    const db = await this.open();
+    const rows = await request(
+      db
+        .transaction('state')
+        .objectStore('state')
+        .getAll(IDBKeyRange.bound('drive:row:', 'drive:row:\uffff')),
+    );
+    return new Map(rows.map((r) => [r.key.slice('drive:row:'.length), r.value]));
+  }
+  async acknowledgeDrive(id, link) {
+    return this.acknowledgeCompanion(id, link, 'drive');
+  }
+  async applyDriveChanges(changes, links, conflicts) {
+    return this.applyCompanionChanges(changes, links, null, conflicts, [], 'drive');
   }
   async allCatalog() {
     const db = await this.open();
@@ -864,18 +878,25 @@ export class Database {
       }
     };
   }
-  async acknowledgeCompanion(id, link) {
+  async acknowledgeCompanion(id, link, namespace = 'companion') {
     const db = await this.open();
     const tx = db.transaction(['records', 'catalog', 'search', 'state'], 'readwrite');
     const done = completed(tx);
-    tx.objectStore('state').put({ key: `companion:row:${id}`, value: link });
+    tx.objectStore('state').put({ key: `${namespace}:row:${id}`, value: link });
     const req = tx.objectStore('records').get(id);
     req.onsuccess = () => {
       if (req.result) this.putRow(tx, { ...req.result, dirty: req.result.hash !== link.hash });
     };
     await done;
   }
-  async applyCompanionChanges(changes, links, cursor, conflicts, deferred = []) {
+  async applyCompanionChanges(
+    changes,
+    links,
+    cursor,
+    conflicts,
+    deferred = [],
+    namespace = 'companion',
+  ) {
     const changedIds = new Set(changes.map((change) => change.record.id));
     const prepared = await Promise.all(
       changes.map(async (change) => ({
@@ -905,7 +926,7 @@ export class Database {
       };
     }
     for (const [id, link] of links) {
-      tx.objectStore('state').put({ key: `companion:row:${id}`, value: link });
+      tx.objectStore('state').put({ key: `${namespace}:row:${id}`, value: link });
       if (!changedIds.has(id)) {
         const req = tx.objectStore('records').get(id);
         req.onsuccess = () => {
@@ -913,11 +934,11 @@ export class Database {
         };
       }
     }
-    tx.objectStore('state').put({ key: 'companion:cursor', value: cursor });
-    tx.objectStore('state').put({ key: 'companion:conflicts', value: conflicts });
-    tx.objectStore('state').put({ key: 'companion:deferred', value: deferred });
+    tx.objectStore('state').put({ key: `${namespace}:cursor`, value: cursor });
+    tx.objectStore('state').put({ key: `${namespace}:conflicts`, value: conflicts });
+    tx.objectStore('state').put({ key: `${namespace}:deferred`, value: deferred });
     // Read validation after all queued record writes, in this same transaction.
-    const barrier = tx.objectStore('state').get('companion:cursor');
+    const barrier = tx.objectStore('state').get(`${namespace}:cursor`);
     barrier.onsuccess = () =>
       this.guardProjects(tx, (e) => {
         error = e;
@@ -927,7 +948,7 @@ export class Database {
     } catch (e) {
       throw error || e;
     }
-    if (changes.length) this.changed('companion-result');
+    this.changed(`${namespace}-result`);
   }
   async exportData() {
     const [rows, captures, drafts, assets] = await Promise.all([

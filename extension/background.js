@@ -2,54 +2,9 @@ import { Database } from './lib/db.js';
 import { newRecord, safeUrl, MAX_ASSET_BYTES } from './lib/model.js';
 import { enqueueCollected } from './lib/collected.js';
 import { protectStorage } from './lib/config.js';
-import { synchronizeCompanion } from './lib/companion.js';
-import { loadAsset } from './lib/assets.js';
+import { handleDriveCommand } from './lib/drive-service.js';
 
 const db = new Database();
-const HANDOFF_ALARM = 'pkm-local-handoff';
-let companionTimer;
-async function configureHandoff() {
-  const { companionEnabled } = await chrome.storage.local.get('companionEnabled');
-  if (companionEnabled) await chrome.alarms.create(HANDOFF_ALARM, { periodInMinutes: 1 });
-  else await chrome.alarms.clear(HANDOFF_ALARM);
-}
-async function companionSync(remote = false, pullOnly = false) {
-  if (!(await chrome.storage.local.get('companionEnabled')).companionEnabled)
-    return { disabled: true };
-  let result;
-  try {
-    result = await synchronizeCompanion(db, {
-      resolveAsset: (descriptor) => loadAsset(db, descriptor),
-      remote,
-      pullOnly,
-    });
-  } catch (error) {
-    await db.setState('companion:error', { at: new Date().toISOString(), message: error.message });
-    db.changed('companion-result');
-    throw error;
-  }
-  if (result.busy || result.refreshPending) queueCompanion();
-  return result;
-}
-function queueCompanion() {
-  clearTimeout(companionTimer);
-  companionTimer = setTimeout(() => companionSync().catch(() => {}), 300);
-}
-chrome.runtime.onStartup.addListener(() =>
-  configureHandoff()
-    .then(queueCompanion)
-    .catch(() => {}),
-);
-chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === HANDOFF_ALARM) companionSync().catch(() => {});
-});
-chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'local' && changes.companionEnabled)
-    configureHandoff()
-      .then(queueCompanion)
-      .catch(() => {});
-});
-configureHandoff().catch(() => {});
 protectStorage().catch(() => {});
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
 chrome.runtime.onInstalled.addListener(() => {
@@ -348,13 +303,9 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
       .catch((error) => respond({ ok: false, error: error.message }));
     return true;
   }
-  if (message?.type === 'companion-queue') {
-    queueCompanion();
-    respond({ ok: true });
-    return;
-  }
-  if (message?.type === 'companion-sync') {
-    companionSync(message.remote === true, message.pullOnly === true)
+  if (message?.type === 'drive-command') {
+    if (!sender.url?.startsWith(chrome.runtime.getURL(''))) return;
+    handleDriveCommand(db, message)
       .then((result) => respond({ ok: true, result }))
       .catch((error) => respond({ ok: false, error: error.message }));
     return true;

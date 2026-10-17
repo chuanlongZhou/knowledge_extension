@@ -1,5 +1,13 @@
 # PKM Nexus 验证记录
 
+## 0.8.0 简化版：直接 Google Drive
+
+- `npm test`：85 项通过，0 失败、0 跳过；ESLint 通过。覆盖单文件更新、二进制附件、同记录冲突、条件写入竞态、丢失响应重试、账号隔离、损坏文件、项目批次、重复创建与下载期间的浏览器编辑。
+- 两个隔离 Chromium 通过正式客户端与本机模拟 Google HTTP 服务完成登录界面、创建文件夹、上传、新设备选择文件夹与下载、冲突查看和版本选择、完整 ZIP 导出及退出登录保留数据。报告 test-results/direct-drive-browser-report.json；截图 direct-drive-settings.png、direct-drive-login.png、direct-drive-dashboard.png。OAuth API 在隔离测试扩展中替换；未访问用户 Google 账号。
+- 四项稳定性浏览器检查通过，修复了重开页面等待错误标题的问题；离线说明书、主题与项目归属筛选验证通过。浏览器及导出备份保留原数据，无自动上传下载。
+- 新构建 dist/PKM-Nexus-0.8.0-direct-drive.zip 不含可执行文件、安装包或 Native Messaging 入口。已接入用户提供的 Chrome 扩展 OAuth 客户端 ID，并固定 manifest.key；简化版 ID 为 jjpdanoikikedmildkmhndmbjnajjaho，原版数据通过 ZIP 迁移。Google 端须更新绑定；真实 Google 登录、实际 Drive v2 条件更新行为及两台真实设备验收仍待完成，不将模拟结果当成正式发布验证。
+- 简化版 CI 保留的 11 套浏览器测试在本机全部通过，包括权限、外站链接、示例、侧栏交互、连续收集、项目、主题、筛选、稳定性、新帮助和直接同步；本地通过不代表 GitHub 远端检查已经运行。
+
 ## 未发布：标签、项目归属筛选与六套配色
 
 - ESLint 通过；项目相关单元测试 20 项通过，包括筛选与搜索、标签、类型及置顶组合，65 条以上记录的分页，以及已删除和不存在项目的归属处理。

@@ -11,13 +11,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
-      - run: npm run prepare:companion
       - run: npm test
       - run: npm run prepare:extension
       - run: npx playwright install chromium
-      - run: npm run test:browser
-      - run: npm run test:media-browser
-      - run: npm run test:types-browser
+      - run: npm run test:drive-browser
       - run: npm run test:stability-browser
       - run: npm run test:permissions-browser
       - run: npm run test:websites-browser
@@ -27,9 +24,7 @@ jobs:
       - run: npm run test:projects-browser
       - run: npm run test:theme-browser
       - run: npm run test:customization-browser
-      - run: node tests/package-smoke.mjs
-      - run: node tests/companion-browser.mjs
-      - run: npm run test:desktop
+      - run: npm run test:guide
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -112,10 +112,10 @@ try {
   await addGroup('学习');
   await page.reload();
   await group('学习').waitFor();
-  assert.match(await group('学习').innerText(), /0/);
+  assert.equal(await group('学习').innerText(), '学习');
   await all();
   await group('学习').dragTo(card(ids.notes[0]));
-  await group('学习').filter({ hasText: '1' }).waitFor();
+  await card(ids.notes[0]).locator('.tag').filter({ hasText: '学习' }).waitFor();
   assert.equal((await row(ids.notes[0])).organization_state, 'organized');
   assert.deepEqual((await row(ids.notes[0])).tags, ['原有', '保留', '学习']);
   pass('侧栏可新建空标签，真实拖放保留其他标签并标记已整理');
@@ -123,7 +123,7 @@ try {
   await addGroup('归档');
   await group('学习').click();
   await group('归档').dragTo(card(ids.notes[0]));
-  await group('归档').filter({ hasText: '1' }).waitFor();
+  await card(ids.notes[0]).locator('.tag').filter({ hasText: '归档' }).waitFor();
   assert.deepEqual((await row(ids.notes[0])).tags, ['原有', '保留', '学习', '归档']);
   await group('归档').click();
   await card(ids.notes[0]).getByRole('button', { name: '移回收件箱', exact: true }).click();
@@ -136,7 +136,7 @@ try {
   await move.getByLabel('移动目标').selectOption('new');
   await move.getByLabel('新标签名称', { exact: true }).fill('新项目');
   await move.getByRole('button', { name: '移动', exact: true }).click();
-  await group('新项目').filter({ hasText: '1' }).waitFor();
+  await group('新项目').waitFor();
   assert.deepEqual((await row(ids.notes[0])).tags, ['原有', '保留', '学习', '归档', '新项目']);
   pass('跨标签追加并保留已有标签；卡片可直接标记整理、退回收件箱并移动到新组');
 
@@ -149,7 +149,7 @@ try {
     .click();
   await move.getByLabel('移动目标').selectOption('tag:学习');
   await move.getByRole('button', { name: '移动', exact: true }).click();
-  await group('学习').filter({ hasText: '2' }).waitFor();
+  await card(ids.notes[1]).locator('.tag').filter({ hasText: '学习' }).waitFor();
   assert.ok((await row(ids.notes[0])).tags.includes('原有'));
   assert.ok((await row(ids.notes[1])).tags.includes('原有'));
   assert.equal((await row(ids.notes[1])).organization_state, 'organized');

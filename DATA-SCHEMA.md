@@ -1,6 +1,6 @@
 # PKM Nexus 数据格式 v4
 
-实现版本：0.7.0。用户收集的内容只有四种类型，共用 Record 表。图片与录音是普通记录的附件；`purpose` 已移除。
+实现版本：0.8.0 简化版。用户收集的内容只有四种类型，共用 Record 表；项目为独立组织记录。图片与录音是普通记录的附件；`purpose` 已移除。
 
 ## 类型与对应界面
 
@@ -35,7 +35,7 @@
 | `list`               | ListItem[]      | 清单专用；其他类型为 `[]`                              |
 | `url_list`           | WebsiteItem[]   | 网页组专用；其他类型为 `[]`                            |
 
-四种 v4 记录包含相同字段；专用字段必须与类型一致。没有 `purpose`、旧 `task_status`、`local_only` 或 `upload_enabled`。已保存记录在启用本地连接后自动交接到资料库；Google Drive 在立即同步或已启用的每小时任务中同步。捕获草稿不会自动进入收件箱或上传。
+四种 v4 记录包含相同字段；专用字段必须与类型一致。没有 `purpose`、旧 `task_status`、`local_only` 或 `upload_enabled`。记录先保存在浏览器；只有用户点击同步下载或同步上传时才访问 Google Drive。捕获草稿不会自动进入收件箱或上传。
 
 ## Source
 
@@ -116,7 +116,7 @@ id 为组内项目 ID；url 为 HTTP / HTTPS 链接，最多 8,000 字符；titl
 | `created_at`    | ISO UTC 创建时间                                              |
 | `duration_ms`   | 本插件录音时长，毫秒；其他附件为 null                         |
 
-原文件独立保存在浏览器附件表 / 本地资料库的 assets 目录。图片使用 `![标题](assets/<hash>.png)`；录音使用 `[录音](assets/<hash>.webm)`。编辑器显示图片和播放器。音频文件添加入口已移除；旧备份中的音频继续兼容。
+原文件独立保存在浏览器附件表及 Google Drive 的所选文件夹；下载时校验 SHA-256。备份和 Markdown 中图片使用 `![标题](assets/<hash>.png)`；录音使用 `[录音](assets/<hash>.webm)`。编辑器显示图片和播放器。音频文件添加入口已移除；旧备份中的音频继续兼容。
 
 ## 标签页收集与关闭
 
@@ -129,22 +129,22 @@ id 为组内项目 ID；url 为 HTTP / HTTPS 链接，最多 8,000 字符；titl
 ## 存储、兼容与备份
 
 ```text
-records/<前缀>/<id>.json     当前记录、回收站内容、项目与最小删除标记
-assets/<sha256>.<ext>        已下载图片、录音、PNG 与旧版 MHTML
-readable/<id>.md            可重建的 Markdown 阅读视图
-.nexus/revisions/           不可变修订及父版本关系
-.nexus/index.sqlite         本机索引与同步状态，不上传
+Google Drive 所选文件夹/
+  <id>.json                一条记录、项目或删除标记的 JSON 信封
+  <sha256>.<ext>            按内容校验值复用的图片和音频
+浏览器 IndexedDB/          记录、附件、草稿、同步基线及冲突
+导出 ZIP/                  backup.json、records、notes、assets、recovery（如有）
 ```
 
 项目为 v5 独立组织记录，不是第五个收集入口。旧项目关键词字段只做兼容读取，首次修改项目后移除。删除标记仅保留 schema_version、id、kind: tombstone、created_at、deleted_at，防止旧设备复活记录。
 
 兼容 v1 / v2 / v3：读取不改变旧哈希，编辑时升级为 v4，ID 与时间保留。旧 purpose 转为正文“旧版备注”。旧独立 todo 在打开、同步或导入后汇入唯一清单，原记录保留为普通记录，文字不丢弃。
 
-列表只读取元数据和有限项目预览；正文、全部项目及附件按操作读取。hash、rev、dirty、companion 版本链接和游标属于本机状态，不属于 Record。Google 凭证由本地程序安全保存，不进入内容文件或备份。
+列表只读取元数据和有限项目预览。hash、rev、dirty、drive:row 同步基线及冲突属于浏览器状态，不属于 Record。Google 访问令牌由 Chrome Identity 缓存，不写入记录或备份。云端 JSON 为 `{ format: 'pkm-direct-record', version: 1, hash, record }`；文件 appProperties 中以 pkm_role、record_id 或 asset_id 标识用途。
 
-本地程序先上传附件，再发布引用修订和附件的不可变 Drive 批次；其他电脑先获取记录及附件描述，按需下载媒体。浏览器接收记录、版本链接、冲突集合与游标采用同一事务。完整 ZIP 包含记录、Markdown、草稿、待处理收集和附件；未完成录音放入 recovery。缺失或校验失败的附件会停止打包。
+扩展先上传附件，再新增或条件更新对应的记录文件。下载读取云端记录与附件，校验哈希，并在一个事务内提交记录、同步基线和冲突；并发编辑导致版本不匹配时回滚，项目关联验证失败时不部分应用。完整 ZIP 包含记录、Markdown、草稿、待处理收集和附件；未完成录音放入 recovery。缺失或校验失败的附件会停止打包。
 
-升级同一个扩展请点击“重新加载”，不要先卸载；所有同步电脑请更新为 0.7.0。
+升级同一个扩展请点击“重新加载”，不要先卸载；所有同步电脑应使用同一简化版及 Chrome OAuth 应用注册。旧版云端结构通过完整 ZIP 导出导入迁移。
 
 实现依据：[Chrome pageCapture](https://developer.chrome.com/docs/extensions/reference/api/pageCapture)、[Chrome Tabs API](https://developer.chrome.com/docs/extensions/reference/api/tabs)。
 
@@ -170,8 +170,8 @@ readable/<id>.md            可重建的 Markdown 阅读视图
 - `favorite?: boolean` 是记录喜爱状态；旧记录未设置时不补写字段，保持原哈希。
 - `UrlItem.removed_at?: ISODate | null` 标记网页的划线删除；保留条目、URL 与 ID，可恢复；被划线条目不计入未读，也不用于关闭浏览器标签页。
 - `graph.positions`、喜爱、项目描述及外观参与正常同步；空标签、标签颜色放在本机 UI 状态。
-- 备份与 Drive 修订记录格式支持 v1–v5。读取旧记录不改变哈希；新增字段时升级相应记录。所有同步电脑和 Companion 应使用本次配套版本。
-- 移出成员、删除或合并记录会与清理相关边在同一本机事务中提交。导入与 Companion 批量交接校验层级及图端点；不一致时停止并保留原数据。
+- 备份与直接同步的记录支持 v1–v5。读取旧记录不改变哈希；新增字段时升级相应记录。
+- 移出成员、删除或合并记录会与清理相关边在同一浏览器事务中提交。导入与批量下载校验层级及图端点；不一致时停止并保留原数据。
 
 ## 0.7.0 界面偏好与内联总结
 

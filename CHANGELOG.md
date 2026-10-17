@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.0 Google Drive 简化分支
+
+- 扩展直接使用 Chrome Identity 登录个人 Google Drive，新用户创建文件夹，新设备选择同应用的已有文件夹。
+- 拆分手动同步下载、同步上传；按稳定记录 ID 存 JSON，附件按哈希复用，使用同步基线和条件更新保留冲突版本。
+- 删除运行界面的安装包、本地应用、扩展 ID、本地连接与交接入口，去除 nativeMessaging 和 alarms 权限；ZIP 备份、全部收集整理功能及六套主题保留。
+- 新分支的构建与 CI 不再依赖配套应用；修复稳定性用例忽略页面恢复状态，以及示例预览遗漏保存按钮的问题。
+- 已接入用户提供的 Chrome OAuth 客户端 ID，并生成固定公钥，简化版 ID 为 jjpdanoikikedmildkmhndmbjnajjaho；Google 端须绑定到此新 ID。模拟 HTTP 与双浏览器测试不代表真实 Google 授权验收。
+
 ## 未发布
 
 - 标签移除记录计数，仅保留标签名称。

@@ -322,6 +322,23 @@ body[data-mode='panel'] .panel-brand {
   gap: 10px;
   margin: 18px 0;
 }
+.drive-settings-controls,
+.drive-folder-choices {
+  display: grid;
+  gap: 12px;
+}
+.drive-settings-controls h4 {
+  margin: 10px 0 0;
+}
+.conflict-preview {
+  max-height: 230px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 12px;
+  background: var(--paper);
+  color: var(--ink);
+}
 .theme-preset {
   display: grid;
   gap: 7px;

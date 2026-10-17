@@ -28,9 +28,12 @@ try {
   await page.locator('#manual').click();
   const manual = await opened;
   await manual.waitForURL('**/manual.html');
-  await manual.getByRole('heading', { name: 'PKM Nexus 使用说明书', exact: true }).waitFor();
-  const imageCount = await manual.locator('#guide-content img').count();
-  assert.ok(imageCount >= 20, '说明书缺少本轮截图');
+  await manual.getByRole('heading', { name: 'PKM Nexus 0.8.0 使用说明书', exact: true }).waitFor();
+  assert.match(await manual.locator('#guide-content').innerText(), /登录自己的 Google Drive/);
+  assert.doesNotMatch(
+    await manual.locator('#guide-content').innerText(),
+    /安装本地应用|本地资料库|每小时任务|Native Messaging/,
+  );
   await manual.evaluate(async () => {
     for (const img of document.querySelectorAll('#guide-content img')) {
       const response = await fetch(img.src);
@@ -40,17 +43,15 @@ try {
       bitmap.close();
     }
   });
-  await manual.locator('#guide-search').fill('普通记录');
+  await manual.locator('#guide-search').fill('同步下载');
   assert.equal(await manual.locator('#guide-toc a').count(), 1);
   await manual.locator('#guide-search').fill('');
   assert.match(await manual.locator('#guide-source').getAttribute('href'), /使用说明书\.md/);
-  await manual.screenshot({ path: 'extension/guide/images/guide-h01-01.png' });
+  await manual.screenshot({ path: path.join(output, 'direct-guide.png') });
   await manual.locator('#read-tests').click();
-  await manual
-    .getByRole('heading', { name: 'PKM Nexus 标准演示与验收流程', exact: true })
-    .waitFor();
-  assert.ok(await manual.locator('#guide-content table').count());
-  await manual.screenshot({ path: 'extension/guide/images/guide-h01-02.png' });
+  await manual.getByRole('heading', { name: '简化版验证流程', exact: true }).waitFor();
+  assert.match(await manual.locator('#guide-content').innerText(), /真实 Chrome/);
+  await manual.screenshot({ path: path.join(output, 'direct-guide-tests.png') });
   await manual.setViewportSize({ width: 360, height: 950 });
   assert.equal(
     await manual.evaluate(() => document.documentElement.scrollWidth > innerWidth),
@@ -91,29 +92,27 @@ try {
         steps: [
           {
             action: '从整理页打开内置使用说明书',
-            expected: '断网可读，目录和图片完整',
-            actual: `${imageCount} 张本地截图可解码；目录检索、Markdown 来源和侧栏入口均通过`,
+            expected: '新版说明书断网可读，目录完整',
+            actual: '直接同步说明、目录检索、Markdown 来源和两个帮助入口均通过',
             status: 'passed',
-            image: 'images/guide-h01-01.png',
+            image: 'direct-guide.png',
           },
           {
             action: '查看可重复测试流程',
-            expected: '标准步骤、矩阵和命令随包提供',
-            actual: '测试矩阵可读，360px 无横向溢出；不执行 Markdown HTML 或脚本链接',
+            expected: '简化版验证步骤与命令随包提供',
+            actual: '验证步骤可读，360px 无横向溢出；不执行 Markdown HTML 或脚本链接',
             status: 'passed',
-            image: 'images/guide-h01-02.png',
+            image: 'direct-guide-tests.png',
           },
         ],
       },
     ],
   };
-  await mkdir('docs/demo-results', { recursive: true });
-  await writeFile('docs/demo-results/guide.json', JSON.stringify(result, null, 2) + '\n');
   await writeFile(
     path.join(output, 'guide-browser-report.json'),
     JSON.stringify(result, null, 2) + '\n',
   );
-  console.log(`PASS H01 两个入口、断网文档、${imageCount} 张截图、目录、窄屏和安全渲染`);
+  console.log('PASS H01 两个入口、新版断网文档、目录、窄屏和安全渲染');
 } finally {
   await context?.close();
   if (

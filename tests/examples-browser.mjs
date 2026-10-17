@@ -103,6 +103,7 @@ try {
   assert.equal(saved.record.sources[0].url, 'https://chetna-indian.netlify.app/');
   pass('主动保存后正文、来源、图片和音频作为同一条普通收件箱记录，按现有规则待同步');
   await page.getByRole('button', { name: `打开 ${saved.record.title}`, exact: true }).click();
+  await page.locator('dialog[open]').getByRole('button', { name: '完整修改', exact: true }).click();
   const editor = page.locator('dialog[open]');
   await editor.locator('[name=content]').fill('用户自行编辑后的示例正文。');
   await editor.getByRole('button', { name: '保存修改', exact: true }).click();
@@ -137,7 +138,10 @@ try {
   const shortcutBox = await shortcut.boundingBox();
   assert.ok(shortcutBox.y > 750 && shortcutBox.y + shortcutBox.height < 1000);
   assert.equal(await side.locator('.panel-start').count(), 0);
-  assert.match(await side.locator('#extension-version').innerText(), /PKM Nexus v0\.5\./);
+  assert.equal(
+    await side.locator('#extension-version').innerText(),
+    `PKM Nexus v${await side.evaluate(() => chrome.runtime.getManifest().version)}`,
+  );
   await side.screenshot({ path: path.join(output, 'builtin-examples-sidepanel-entry.png') });
   await shortcut.click();
   await side.waitForFunction(

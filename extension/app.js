@@ -11,9 +11,6 @@ import {
   saveProject,
 } from './lib/projects.js';
 import { projectGraph } from './lib/project-graph.js';
-import { CompanionClient, handoffCompanion } from './lib/companion.js';
-import { companionInstaller } from './lib/companion-install.js';
-import { loadAsset } from './lib/assets.js';
 import {
   newRecord,
   TYPES,
@@ -26,6 +23,7 @@ import {
 } from './lib/model.js';
 import { captureInto, appendCapture } from './lib/capture.js';
 import { readConfig, protectStorage } from './lib/config.js';
+import { driveSettings, driveCommand } from './lib/drive-ui.js';
 import {
   el,
   button,
@@ -208,7 +206,7 @@ $('app').innerHTML = `
     <div class="sidebar-bottom"><div id="library-summary" class="library-summary"></div><button id="theme" class="nav-item">◐　主题与字体</button><button id="manual" class="nav-item">▤　使用说明书</button><button id="settings" class="nav-item">⚙　设置与数据管理</button><small class="extension-version muted"></small></div>
   </aside>
   <main class="main"><div class="panel-brand"><img class="brand-penguin" src="icons/penguin.png" alt="企鹅"><strong>PKM Nexus</strong></div>
-    <header class="topbar"><div class="search-wrap"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="搜索标题、正文、标签和来源…" aria-label="搜索记录"></div><div class="topbar-actions"><button id="save-local" class="button">保存到本地</button><button id="sync" class="button">↻ 立即同步</button><button id="new" class="button primary">＋ 新建记录</button></div></header>
+    <header class="topbar"><div class="search-wrap"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="搜索标题、正文、标签和来源…" aria-label="搜索记录"></div><div class="topbar-actions"><button id="save-local" class="button">导出备份</button><button id="sync-download" class="button">↓ 同步下载</button><button id="sync" class="button">↑ 同步上传</button><button id="new" class="button primary">＋ 新建记录</button></div></header>
     <div class="content">
       <section id="capture-box" class="capture-box"></section>
       <div class="page-eyebrow">PERSONAL KNOWLEDGE INBOX</div>
@@ -220,7 +218,7 @@ $('app').innerHTML = `
       <section id="records" class="records" aria-label="记录列表"></section>
       <button id="load-more" class="button load-more" hidden>加载更多</button>
     </div>
-    <footer class="panel-footer"><div class="panel-footer-meta"><small id="extension-version" class="extension-version muted"></small><button id="examples-shortcut" class="link-button" aria-controls="builtin-examples">查看内置示例</button></div><div id="panel-sync-status" class="sync-status"></div><button id="panel-sync" class="button primary">立即同步</button><button id="panel-save-local" class="button">保存到本地</button><button id="open-dashboard" class="button">整理页 ↗</button><button id="panel-manual" class="icon-button" aria-label="使用说明书">?</button><button id="panel-settings" class="icon-button" aria-label="打开设置">⚙</button></footer>
+    <footer class="panel-footer"><div class="panel-footer-meta"><small id="extension-version" class="extension-version muted"></small><button id="examples-shortcut" class="link-button" aria-controls="builtin-examples">查看内置示例</button></div><div id="panel-sync-status" class="sync-status"></div><button id="panel-sync-download" class="button">↓ 同步下载</button><button id="panel-sync" class="button primary">↑ 同步上传</button><button id="panel-save-local" class="button">导出备份</button><button id="open-dashboard" class="button">整理页 ↗</button><button id="panel-manual" class="icon-button" aria-label="使用说明书">?</button><button id="panel-settings" class="icon-button" aria-label="打开设置">⚙</button></footer>
   </main>
 </div>`;
 
@@ -349,6 +347,11 @@ $('panel-sync').addEventListener(
   'click',
   act(() => syncNow()),
 );
+for (const id of ['sync-download', 'panel-sync-download'])
+  $(id).addEventListener(
+    'click',
+    act(() => syncNow('download')),
+  );
 $('save-local').addEventListener('click', act(saveLocal));
 $('panel-save-local').addEventListener('click', act(saveLocal));
 async function saveLocal() {
@@ -398,8 +401,8 @@ async function refresh() {
   ] = await Promise.all([
     db.allCatalog(),
     db.captures(),
-    db.getState('companion:conflicts', []),
-    db.getState('companion:last'),
+    db.getState('drive:conflicts', []),
+    db.getState('drive:last'),
     readConfig(),
     db.getState('notice'),
     db.getState(EXAMPLES_VISIBLE, true),
@@ -407,10 +410,11 @@ async function refresh() {
     db.getState(PINNED_RECORDS, []),
   ]);
   const projects = catalog.filter((m) => m.type === 'project' && !m.deleted_at);
-  state.companionEnabled = settings.companionEnabled;
-  const links = await db.companionLinks();
+  const links = await db.driveLinks();
   const pendingIds = new Set(
-    catalog.filter((m) => links.get(m.id)?.hash !== m.hash).map((m) => m.id),
+    catalog
+      .filter((m) => links.get(m.id)?.hash !== m.hash || links.get(m.id)?.needsConsolidation)
+      .map((m) => m.id),
   );
   for (const item of catalog) item.dirty = pendingIds.has(item.id);
   const duplicates = duplicateIds(catalog);
@@ -502,8 +506,8 @@ async function refresh() {
       ? '把标签拖到记录上即可追加分类，保留已有标签。'
       : VIEWS[state.view][1];
   const pending = catalog.filter((m) => m.dirty).length;
-  const localStatus = lastSync;
-  const lastError = await db.getState('companion:error');
+  const binding = await db.getState('drive:binding');
+  const lastError = await db.getState('drive:error');
   const statusNodes = () => [
     el('span', { class: `dot${pending ? ' pending' : ''}` }),
     el(
@@ -512,34 +516,39 @@ async function refresh() {
       state.busy
         ? state.progress
         : lastError
-          ? `本地交接失败：${lastError.message}`
-          : !settings.companionEnabled
-            ? `已保存到浏览器 · ${pending} 项待连接本地资料库`
-            : pending
-              ? `已保存到浏览器 · ${pending} 项待交接本地程序`
-              : !localStatus
-                ? '等待本地程序确认'
-                : localStatus.driveError
-                  ? `已保存到本地资料库 · Drive 同步失败：${localStatus.driveError.message}`
-                  : !localStatus.driveConnected
-                    ? '已保存到本地资料库 · 待连接 Google Drive'
-                    : !localStatus.driveBound
-                      ? '已保存到本地资料库 · 待选择 Drive 资料库'
-                      : `已保存到本地资料库 · ${localStatus.drivePending} 条待传 Drive${localStatus.conflicts ? ` · ${localStatus.conflicts} 条冲突` : ''}${localStatus.deferred ? ` · ${localStatus.deferred} 条关联资料待处理` : ''}`,
+          ? `同步未完成：${lastError}`
+          : !settings.driveAccount
+            ? `已保存到浏览器 · 登录 Google Drive 后可同步`
+            : !binding
+              ? '已登录 Google Drive · 请选择数据文件夹'
+              : `已保存到浏览器 · ${pending} 条待上传${state.conflicts.length ? ` · ${state.conflicts.length} 条冲突` : ''}`,
     ),
-    ...(!state.busy && localStatus?.lastDriveSync
-      ? [el('span', {}, ` · 上次 Drive 同步 ${dateLabel(localStatus.lastDriveSync)}`)]
+    ...(!state.busy && lastSync?.at
+      ? [
+          el(
+            'span',
+            {},
+            ` · 上次${lastSync.direction === 'download' ? '下载' : '上传'} ${dateLabel(lastSync.at)}`,
+          ),
+        ]
       : []),
   ];
   $('sync-status').replaceChildren(...statusNodes());
   $('panel-sync-status').replaceChildren(...statusNodes());
   for (const id of ['sync', 'panel-sync']) {
     $(id).disabled = state.busy;
-    $(id).textContent = state.busy ? '同步中…' : '↻ 立即同步';
+    $(id).textContent = state.busy ? '同步中…' : '↑ 同步上传';
   }
+  for (const id of ['sync-download', 'panel-sync-download']) $(id).disabled = state.busy;
   $('library-summary').replaceChildren(
-    el('span', {}, settings.companionEnabled ? '本地资料库 · Google Drive' : '尚未连接本地资料库'),
-    el('small', {}, '浏览器离线保存；连接本地程序后交接，云端同步由本地程序执行。'),
+    el(
+      'span',
+      {},
+      settings.driveAccount
+        ? `Google Drive · ${binding?.name || '尚未选择文件夹'}`
+        : 'Google Drive · 尚未登录',
+    ),
+    el('small', {}, '浏览器离线保存；手动下载或上传，随时导出 ZIP 备份。'),
   );
   const tags = [...new Set([...tagGroups, ...active.flatMap((m) => m.tags)])].sort((a, b) =>
     a.localeCompare(b),
@@ -803,6 +812,7 @@ async function openExample(example) {
   footer.append(
     el('small', { class: 'muted' }, '保存前为只读预览；图片和测试录音来自已验证的演示数据。'),
     button('关闭', () => dialog.close()),
+    save,
   );
 }
 function renderNotices() {
@@ -848,7 +858,7 @@ function renderNotices() {
         'div',
         { class: 'notice' },
         el('h3', {}, `${state.conflicts.length} 条同步冲突`),
-        '双方版本都已保留。处理后再次立即同步。',
+        '浏览器和云端版本都已保留。选择版本后同步下载以应用选择，需保留浏览器版本时再同步上传。',
         el(
           'div',
           { class: 'row' },
@@ -2174,54 +2184,62 @@ async function openProjectMemberships(id) {
   );
 }
 
-async function openCompanion() {
-  const client = new CompanionClient();
-  try {
-    await client.call('ui.open');
-  } finally {
-    client.close();
-  }
-}
 async function openConflict() {
-  await openCompanion();
-}
-async function syncNow() {
-  if (state.busy) return;
-  state.busy = true;
-  state.progress = '正在交接本地资料库并同步 Google Drive…';
-  clearTimeout(toastTimer);
-  $('toast').textContent = '';
-  $('toast').className = '';
-  for (const id of ['sync', 'panel-sync']) {
-    $(id).disabled = true;
-    $(id).textContent = '同步中…';
-  }
-  try {
-    if (!(await readConfig()).companionEnabled) {
-      if (panel) await openDashboard('#settings');
-      else await openSettings();
-      toast('请先安装并连接本地资料库；浏览器中的记录已保留。');
-      return;
-    }
-    await refresh();
-    const response = await chrome.runtime.sendMessage({ type: 'companion-sync', remote: true });
-    if (!response?.ok) throw new Error(response?.error || '同步未完成，已保存内容仍保留。');
-    const result = response.result;
-    if (result.busy) toast('另一个窗口正在交接，请稍后重试。');
-    else if (result.driveError)
-      toast(`已保存到本地资料库；Drive 同步未完成：${result.driveError}`, true);
-    else if (result.refreshPending) toast('Drive 同步完成，正在等待本地记录交接。');
-    else
-      toast(
-        `同步完成：上传 ${result.drive.pushed} 项，拉取 ${result.drive.pulled} 项，${result.conflicts} 条冲突。其他设备需完成各自同步。`,
+  const conflicts = await db.getState('drive:conflicts', []);
+  const { dialog, body, footer } = modal('选择要保留的记录版本');
+  for (const conflict of conflicts) {
+    const local = await db.get(conflict.id);
+    const section = el(
+      'section',
+      { class: 'settings-section' },
+      el('h3', {}, conflict.title || conflict.id),
+    );
+    const choose = (choice) =>
+      act(async () => {
+        await driveCommand('resolve', { id: conflict.id, choice });
+        dialog.close();
+        await syncNow('download');
+        if (choice === 'local') toast('已保留浏览器版本，请点击同步上传更新云端。');
+      });
+    if (local)
+      section.append(
+        el('h4', {}, '浏览器版本'),
+        el('pre', { class: 'conflict-preview' }, JSON.stringify(local.record, null, 2)),
+        button('保留浏览器版本', choose('local')),
       );
+    for (const variant of conflict.variants)
+      section.append(
+        el('h4', {}, '云端版本'),
+        el('pre', { class: 'conflict-preview' }, JSON.stringify(variant.record, null, 2)),
+        button('使用此云端版本', choose(variant.hash)),
+      );
+    body.append(section);
+  }
+  footer.append(button('关闭', () => dialog.close()));
+}
+async function syncNow(direction = 'upload') {
+  if (state.busy) return;
+  const { driveAccount } = await readConfig();
+  if (!driveAccount || !(await db.getState('drive:binding'))) {
+    if (panel) await openDashboard('#settings');
+    else await openSettings();
+    return;
+  }
+  state.busy = true;
+  state.progress =
+    direction === 'download' ? '正在从 Google Drive 下载…' : '正在上传到 Google Drive…';
+  await refresh();
+  try {
+    const result = await driveCommand('sync', { direction });
+    toast(
+      `${direction === 'download' ? '下载' : '上传'}完成：${direction === 'download' ? result.downloaded : result.uploaded} 条记录，${result.conflicts} 条冲突。${result.missingRemote ? '云端有文件被移除，浏览器版本仍保留；请检查所选文件夹。' : ''}`,
+    );
   } finally {
     state.busy = false;
     state.progress = '';
     await refresh();
   }
 }
-
 async function openTheme() {
   const editor = await themeEditor();
   const { dialog, body, footer } = modal('主题与字体', { onClose: () => editor.dispose() });
@@ -2239,7 +2257,6 @@ async function openTheme() {
   );
 }
 async function openSettings() {
-  const settings = await readConfig();
   const { dialog, body, footer } = modal('设置与数据管理');
   body.append(
     el('p', { class: 'muted' }, `PKM Nexus v${chrome.runtime.getManifest().version}`),
@@ -2268,64 +2285,7 @@ async function openSettings() {
       ),
     ),
   );
-  const companionSection = el(
-    'section',
-    { class: 'settings-section' },
-    el('h3', {}, '本地资料库与 Google Drive'),
-    el(
-      'p',
-      { class: 'description' },
-      '先下载并安装本地应用，再连接当前扩展。连接后，已保存记录会交接到本地资料库；Google 授权和自动同步在本地应用中配置。',
-    ),
-    await companionInstaller(),
-    el('p', { class: 'description' }, '当前扩展 ID（复制到本地应用中）：'),
-    el('code', {}, chrome.runtime.id),
-  );
-  const companionStatus = el(
-    'p',
-    { class: 'description' },
-    settings.companionEnabled ? '本地连接已启用。' : '本地连接尚未启用。',
-  );
-  companionSection.append(
-    el(
-      'div',
-      { class: 'row' },
-      button(
-        '连接并启用本地资料库',
-        act(async () => {
-          companionStatus.textContent = '正在交接已保存记录…';
-          const result = await handoffCompanion(db, {
-            resolveAsset: (descriptor) => loadAsset(db, descriptor),
-          });
-          if (result.busy) throw new Error('另一个窗口正在交接，请稍后重试。');
-          await chrome.storage.local.set({ companionEnabled: true });
-          companionStatus.textContent = `已连接：交接 ${result.pushed} 条，接收 ${result.pulled} 条，${result.conflicts} 条冲突。`;
-        }),
-      ),
-      button(
-        '打开本地管理程序',
-        act(async () => {
-          const client = new CompanionClient();
-          try {
-            await client.call('ui.open');
-          } finally {
-            client.close();
-          }
-        }),
-      ),
-      button(
-        '停用本地连接',
-        act(async () => {
-          await chrome.storage.local.set({ companionEnabled: false });
-          companionStatus.textContent =
-            '已停用浏览器连接。本地程序中的自动同步需要在其设置中单独关闭。';
-        }),
-        'link-button',
-      ),
-    ),
-    companionStatus,
-  );
-  body.append(companionSection);
+  body.append(await driveSettings(db));
   const websitesSection = el(
     'section',
     { class: 'settings-section' },
@@ -2406,7 +2366,7 @@ async function openSettings() {
     el(
       'div',
       { class: 'row' },
-      button('保存到本地（完整 ZIP）', act(saveLocal)),
+      button('导出备份（完整 ZIP）', act(saveLocal)),
       button(
         '导出 JSON',
         act(async () => {
@@ -2547,7 +2507,7 @@ async function openImport(plan) {
     el(
       'p',
       { class: 'description' },
-      '导入只修改本机，不自动上传。相同记录沿用原 ID，本地资料库绑定和 Google 授权不会被备份覆盖。',
+      '导入只保存到浏览器，不自动上传。相同记录沿用原 ID，Google 登录和文件夹选择不会被备份覆盖。',
     ),
   );
   footer.append(
@@ -2558,7 +2518,7 @@ async function openImport(plan) {
         const count = await db.applyImport(plan, overwrite.input.checked);
         await migrateTodos(db);
         dialog.close();
-        toast(`已导入 ${count} 项变化，等待你立即同步。`);
+        toast(`已导入 ${count} 项变化。需要上传到云端时，请点击同步上传。`);
       }),
       'button primary',
     ),
@@ -2590,10 +2550,10 @@ async function initialize() {
     state.projectMembership = '';
   await migrateTodos(db);
   db.onChange((kind) => {
-    if (!['draft', 'companion'].includes(kind)) refreshSoon();
+    if (kind !== 'draft') refreshSoon();
   });
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'local' && changes.companionEnabled) refreshSoon();
+    if (area === 'local' && changes.driveAccount) refreshSoon();
   });
   try {
     examples = await loadExamples();
@@ -2602,19 +2562,6 @@ async function initialize() {
   }
   await setupPanel();
   await refresh();
-  const checkLocal = () => {
-    if (state.companionEnabled && document.visibilityState === 'visible')
-      chrome.runtime
-        .sendMessage({ type: 'companion-sync', pullOnly: true })
-        .then(() => refreshSoon())
-        .catch(() => {});
-  };
-  document.addEventListener('visibilitychange', checkLocal);
-  if ((await readConfig()).companionEnabled)
-    chrome.runtime
-      .sendMessage({ type: 'companion-sync' })
-      .then(() => refreshSoon())
-      .catch(() => {});
   if (!panel && location.hash === '#settings') await openSettings();
 }
 initialize().catch((error) => {
@@ -2626,4 +2573,4 @@ initialize().catch((error) => {
 window.addEventListener('hashchange', () => {
   if (location.hash === '#settings') act(openSettings)();
 });
-// An explicitly enabled local companion can receive queued records on startup. No automatic AI calls.
+// Drive uploads and downloads run only after an explicit user action.

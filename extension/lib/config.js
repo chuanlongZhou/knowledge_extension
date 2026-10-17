@@ -5,9 +5,10 @@ export async function protectStorage() {
   await Promise.all([
     chrome.storage.local.remove(['githubConfig', 'githubToken']),
     chrome.storage.session.remove('githubToken'),
+    chrome.storage.local.remove(['companionEnabled']),
   ]);
 }
 export async function readConfig() {
-  const { companionEnabled } = await chrome.storage.local.get('companionEnabled');
-  return { companionEnabled: companionEnabled === true };
+  const { driveAccount = null } = await chrome.storage.local.get('driveAccount');
+  return { driveAccount };
 }

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "PKM Nexus · 个人知识收件箱",
-  "version": "0.7.3",
-  "description": "快捷收集、本地整理，通过 Windows 配套程序同步到自己的 Google Drive。",
+  "version": "0.8.0",
+  "description": "快捷收集、离线整理，直接同步到自己的 Google Drive，随时导出备份。",
   "minimum_chrome_version": "120",
   "icons": {
     "16": "icons/icon-16.png",
@@ -12,7 +12,6 @@
   },
   "permissions": [
     "storage",
-    "alarms",
     "unlimitedStorage",
     "tabs",
     "activeTab",
@@ -20,8 +19,9 @@
     "contextMenus",
     "sidePanel",
     "favicon",
-    "nativeMessaging"
+    "identity"
   ],
+  "host_permissions": ["https://www.googleapis.com/*"],
   "background": {
     "service_worker": "background.js",
     "type": "module"
@@ -52,5 +52,10 @@
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'self' https: http:; img-src 'self' data: blob: https: http:; media-src 'self' blob:; style-src 'self'; base-uri 'none'"
   },
-  "optional_host_permissions": ["<all_urls>"]
+  "optional_host_permissions": ["<all_urls>"],
+  "oauth2": {
+    "client_id": "464495637351-1gso1qnr3l9i4orm0q7e2e7lf90fkbs3.apps.googleusercontent.com",
+    "scopes": ["https://www.googleapis.com/auth/drive.file"]
+  },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA6zHBtL8tX9fy8VJ91Em3LQg+5i1ujneWQhwsqrr9Fuitj1XzcYnCZHNCKeSgfEHFVFEvtb+sBzVwKMCyoRgQvGrKJ4AeDJUg9TfkcxE4yWmvkSmOyiYayqXur2BOkMrxdGBalTJ0gXt0BhrjEFN+xcCbCi+C77//CHN1rx9aLQ7y8LI3a/3ZLRNNeZvuaeX9suidDcL8W3cJnrTFhxOGlL9Y4TB/7GogXCdHEN3+XfeT1P6SqdKXYvu0q9WAwJcOb0cNphS0sJ4H5gFELgPt9dIc146GzLkf9Mb5suVnmmTAPRSdIgmJW/L/B0TBSIM24+rUheDUfIJJvPb+cGZwzwIDAQAB"
 }
