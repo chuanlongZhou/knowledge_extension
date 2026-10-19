@@ -101,6 +101,9 @@ p {
 .policy h1 {
   font-size: 42px;
 }
+.policy h2 {
+  margin-top: 34px;
+}
 .policy section {
   margin-top: 34px;
 }

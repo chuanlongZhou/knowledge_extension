@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ page.title | escape }}</title>
+    <link rel="stylesheet" href="site.css" />
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="./">GUGA Knowledge</a>
+      <nav aria-label="网站导航"><a href="./">应用主页</a></nav>
+    </header>
+    <main class="policy">
+      <p class="eyebrow">更新：{{ page.updated }}</p>
+      {{ content }}
+    </main>
+    <footer><a href="./">返回 GUGA Knowledge 主页</a></footer>
+  </body>
+</html>
