@@ -225,6 +225,9 @@ try {
   pass('侧栏直接编辑原记录，ID、创建时间及附件保留，记录数不增加');
   const downloaded = side.waitForEvent('download');
   await side.locator('#panel-save-local').click();
+  const exportDialog = side.getByRole('dialog', { name: '选择导出整理方式', exact: true });
+  await exportDialog.getByLabel('文件夹整理方式', { exact: true }).selectOption('none');
+  await exportDialog.getByRole('button', { name: '开始导出', exact: true }).click();
   const zipPath = path.join(output, 'media-local-backup.zip');
   await (await downloaded).saveAs(zipPath);
   const bytes = await readFile(zipPath),
@@ -233,7 +236,13 @@ try {
   assert.ok(!backupText.includes('fake-token'));
   for (const descriptor of after.record.attachments)
     assert.equal(files.get(descriptor.path).length, descriptor.size_bytes);
-  assert.match(new TextDecoder().decode(files.get(`notes/${after.id}.md`)), /\.\.\/assets\//);
+  const exportIndex = JSON.parse(new TextDecoder().decode(files.get('export-index.json')));
+  assert.match(
+    new TextDecoder().decode(
+      files.get(exportIndex.records.find((r) => r.id === after.id).paths[0]),
+    ),
+    /\.\.\/assets\//,
+  );
   assert.equal(repo.remote.calls.length, 0);
   pass('保存到本地下载完整 ZIP，包含全部附件、JSON 和 Markdown，不上传也不含凭证');
   await configure(a.page);

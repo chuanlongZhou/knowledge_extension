@@ -65,8 +65,8 @@ try {
     b = await context.newPage();
   await Promise.all([a.goto(url), b.goto(url)]);
   await Promise.all([
-    a.locator('#heading').filter({ hasText: '收件箱' }).waitFor(),
-    b.locator('#heading').filter({ hasText: '收件箱' }).waitFor(),
+    a.locator('#heading').filter({ hasText: '待同步' }).waitFor(),
+    b.locator('#heading').filter({ hasText: '待同步' }).waitFor(),
   ]);
   assert.equal(
     await a

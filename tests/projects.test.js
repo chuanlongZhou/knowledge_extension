@@ -13,6 +13,64 @@ import {
 import { listMarkdown, listDocument, parseListMarkdown } from '../extension/lib/collections.js';
 import { handoffCompanion } from '../extension/lib/companion.js';
 
+test('organized project membership filters before pagination and composes with search, tags and type', async (t) => {
+  const db = database(t);
+  const project = newRecord({ type: 'project', title: 'Active project' });
+  const retired = newRecord({
+    type: 'project',
+    title: 'Deleted project',
+    deleted_at: new Date().toISOString(),
+  });
+  const records = Array.from({ length: 65 }, (_, i) =>
+    newRecord({
+      title: `Research ${i}`,
+      content: 'searchable body',
+      organization_state: 'organized',
+      tags: ['research'],
+    }),
+  );
+  const member = newRecord({
+    title: 'Research member',
+    tags: ['research'],
+    organization_state: 'organized',
+    project_ids: [project.id],
+  });
+  const orphan = newRecord({
+    title: 'Research orphan',
+    tags: ['research'],
+    organization_state: 'organized',
+    project_ids: [retired.id, crypto.randomUUID()],
+  });
+  const inbox = newRecord({ title: 'Research inbox' });
+  await db.saveMany(
+    [project, retired, ...records, member, orphan, inbox].map((record) => ({ record })),
+  );
+  const filter = {
+    view: 'organized',
+    projectMembership: 'no-project',
+    query: 'Research',
+    tag: 'research',
+    type: 'note',
+    pinnedIds: [member.id, orphan.id],
+  };
+  const first = await db.list({ ...filter, limit: 60 });
+  const rest = await db.list({ ...filter, limit: 60, offset: 60 });
+  assert.equal(first.items.length, 60);
+  assert.equal(first.hasMore, true);
+  assert.equal(rest.items.length, 6);
+  assert.equal(rest.hasMore, false);
+  assert.deepEqual(
+    new Set([...first.items, ...rest.items].map((m) => m.id)),
+    new Set([...records, orphan].map((r) => r.id)),
+  );
+  assert.deepEqual(
+    (await db.list({ ...filter, projectMembership: 'in-project' })).items.map((m) => m.id),
+    [member.id],
+  );
+  assert.equal((await db.list({ ...filter, tag: 'other' })).items.length, 0);
+  assert.equal((await db.list({ view: 'inbox', projectMembership: 'in-project' })).items.length, 1);
+});
+
 test('tag rename updates records, queued captures, drafts and styles without losing other metadata; color-only edits preserve revisions', async (t) => {
   const db = database(t);
   const a = newRecord({

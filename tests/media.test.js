@@ -64,7 +64,10 @@ test('full local ZIP contains record data, binary images and readable Markdown, 
   assert.ok(files.has('backup.json'));
   assert.ok(files.has(`records/${record.id}.json`));
   assert.deepEqual(Buffer.from(files.get(image.path)), imageBytes);
-  assert.match(new TextDecoder().decode(files.get(`notes/${record.id}.md`)), /\.\.\/assets\//);
+  assert.match(
+    new TextDecoder().decode(files.get('notes/未归入项目/ZIP roundtrip.md')),
+    /\.\.\/\.\.\/assets\//,
+  );
   await b.applyImport(await previewZipImport(b, zip));
   assert.equal((await b.get(record.id)).record.attachments[0].id, image.id);
   assert.equal(await digestBytes(await (await b.getAsset(image.id)).blob.arrayBuffer()), image.id);
@@ -85,8 +88,8 @@ test('Markdown export includes each image file at the path referenced by its not
     resolveAsset: async (descriptor) => (await db.getAsset(descriptor.id)).blob,
   });
   const files = await readZip(zip);
-  const markdown = new TextDecoder().decode(files.get(`notes/${record.id}.md`));
-  assert.match(markdown, new RegExp(`!\\[企鹅\\]\\(\\.\\./${image.path}\\)`));
+  const markdown = new TextDecoder().decode(files.get('notes/未归入项目/收集图片.md'));
+  assert.match(markdown, new RegExp(`!\\[企鹅\\]\\(\\.\\./\\.\\./${image.path}\\)`));
   assert.deepEqual(Buffer.from(files.get(image.path)), imageBytes);
   assert.equal(files.has('backup.json'), false);
 });
@@ -181,7 +184,7 @@ test('installed v1 database upgrades in place and promotes local-only records wi
   assert.equal(saved.rev, 4);
   assert.deepEqual(saved.record, record);
   assert.equal(saved.dirty, true);
-  assert.equal((await upgraded.open()).version, 4);
+  assert.equal((await upgraded.open()).version, 5);
   assert.equal((await upgraded.open()).objectStoreNames.contains('staging'), false);
   assert.equal((await upgraded.open()).objectStoreNames.contains('conflicts'), false);
   assert.equal(saved.baseHash, undefined);

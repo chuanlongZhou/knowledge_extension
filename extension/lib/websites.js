@@ -1,3 +1,4 @@
+import { t } from './i18n.js';
 import { safeUrl } from './model.js';
 import { el } from './dom.js';
 const cache = new Map();
@@ -16,7 +17,7 @@ export function shortWebsiteTitle(title, url) {
   try {
     return new URL(url).hostname.replace(/^www\./, '');
   } catch {
-    return '网页';
+    return t('网页');
   }
 }
 export function favicon(url) {
@@ -88,7 +89,7 @@ export async function websiteTitle(
   { hint = '', fetchImpl = globalThis.fetch, hasAccess = canReadWebsite } = {},
 ) {
   url = safeUrl(url);
-  if (!url) throw new Error('请输入 HTTP / HTTPS 网页链接。');
+  if (!url) throw new Error(t('请输入 HTTP / HTTPS 网页链接。'));
   const fallback = shortWebsiteTitle(hint, url);
   // Dragged links already carry a title. Neither they nor ungranted sites need
   // a cross-origin request; a caught fetch failure still appears in Chrome's log.
@@ -112,7 +113,7 @@ export async function websiteTitle(
         cache: 'no-store',
       });
       if (!response.ok || !response.headers.get('content-type')?.toLowerCase().includes('html'))
-        throw new Error('网页不提供标题');
+        throw new Error(t('网页不提供标题'));
       reader = response.body.getReader();
       const chunks = [];
       let length = 0;
@@ -121,7 +122,7 @@ export async function websiteTitle(
         const { done, value } = await reader.read();
         if (done) break;
         length += value.length;
-        if (length > 512 * 1024) throw new Error('网页标题部分过大');
+        if (length > 512 * 1024) throw new Error(t('网页标题部分过大'));
         chunks.push(value);
         if (decoder.decode(value).includes('</head>')) break;
       }

@@ -73,6 +73,110 @@ export async function appendWebsites(db, id, items) {
     };
   });
 }
+export async function moveWebsite(db, sourceId, targetId, itemId) {
+  if (sourceId === targetId) return { moved: false };
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const [source, target] = await Promise.all([db.get(sourceId), db.get(targetId)]);
+    if (
+      [source, target].some(
+        (row) => !row || row.record.type !== 'website_group' || row.record.deleted_at,
+      )
+    )
+      throw new Error('请选择仍在使用的网页组。');
+    const item = source.record.url_list.find((item) => item.id === itemId && !item.removed_at);
+    if (!item) throw new Error('这个网页已经移动或删除，请刷新后重试。');
+    const incoming = structuredClone(item),
+      urls = structuredClone(target.record.url_list),
+      duplicate = urls.find((other) => urlKey(other.url) === urlKey(item.url)),
+      now = new Date().toISOString();
+    if (duplicate) {
+      // Keep the destination identity/title, restore removed URLs, and never lose a read mark.
+      duplicate.removed_at = null;
+      duplicate.read_at ||= incoming.read_at;
+    } else {
+      if (urls.some((other) => other.id === incoming.id)) incoming.id = crypto.randomUUID();
+      urls.push(incoming);
+    }
+    try {
+      await db.saveMany([
+        {
+          record: {
+            ...upgradeRecord(source.record),
+            url_list: source.record.url_list.filter((i) => i.id !== itemId),
+            updated_at: now,
+          },
+          expectedRev: source.rev,
+        },
+        {
+          record: { ...upgradeRecord(target.record), url_list: urls, updated_at: now },
+          expectedRev: target.rev,
+        },
+      ]);
+      return { moved: true, merged: !!duplicate };
+    } catch (error) {
+      if (!(error instanceof StaleEditError) || attempt === 3) throw error;
+    }
+  }
+}
+export async function moveWebsiteGroups(db, sourceIds, targetId) {
+  if (
+    !Array.isArray(sourceIds) ||
+    sourceIds.length > 1000 ||
+    sourceIds.some((id) => typeof id !== 'string')
+  )
+    throw new Error('没有识别到可并入的网页组。');
+  const ids = [...new Set(sourceIds)].filter((id) => id !== targetId);
+  if (!ids.length) return { moved: 0 };
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const rows = await Promise.all([targetId, ...ids].map((id) => db.get(id)));
+    if (rows.some((row) => !row || row.record.type !== 'website_group' || row.record.deleted_at))
+      throw new Error('整组并入只支持仍在使用的网页组，普通记录请移到项目或标签。');
+    const [target, ...sources] = rows,
+      urls = structuredClone(target.record.url_list),
+      byUrl = new Map(urls.map((item) => [urlKey(item.url), item])),
+      usedIds = new Set(urls.map((item) => item.id)),
+      now = new Date().toISOString();
+    let moved = 0;
+    const changes = [];
+    for (const source of sources) {
+      const active = source.record.url_list.filter((item) => !item.removed_at);
+      if (!active.length) continue;
+      for (const item of active) {
+        const duplicate = byUrl.get(urlKey(item.url));
+        if (duplicate) {
+          duplicate.removed_at = null;
+          duplicate.read_at ||= item.read_at;
+        } else {
+          const copy = structuredClone(item);
+          if (usedIds.has(copy.id)) copy.id = crypto.randomUUID();
+          urls.push(copy);
+          byUrl.set(urlKey(copy.url), copy);
+          usedIds.add(copy.id);
+        }
+        moved++;
+      }
+      changes.push({
+        record: {
+          ...upgradeRecord(source.record),
+          url_list: source.record.url_list.filter((item) => item.removed_at),
+          updated_at: now,
+        },
+        expectedRev: source.rev,
+      });
+    }
+    if (!moved) return { moved: 0 };
+    changes.push({
+      record: { ...upgradeRecord(target.record), url_list: urls, updated_at: now },
+      expectedRev: target.rev,
+    });
+    try {
+      await db.saveMany(changes);
+      return { moved };
+    } catch (error) {
+      if (!(error instanceof StaleEditError) || attempt === 3) throw error;
+    }
+  }
+}
 export function listMarkdown(items, mode) {
   return items
     .filter((i) => i.is_checkbox === mode)

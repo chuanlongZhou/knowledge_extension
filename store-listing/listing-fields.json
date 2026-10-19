@@ -1,0 +1,62 @@
+{
+  "product": "GUGA Knowledge",
+  "version": "0.9.1",
+  "locales": {
+    "zh-CN": {
+      "name": "GUGA Knowledge",
+      "shortDescription": "收集网页、笔记和灵感，用标签与项目离线整理。个人启动页、手动 Google Drive 同步与完整 ZIP 备份。",
+      "headline": "把值得留下的，变成自己的知识。",
+      "tagline": "YOUR KNOWLEDGE, GUGUGAGA",
+      "description": "GUGA Knowledge 是你的浏览器知识收件箱。把看到的网页、摘录、图片和突然出现的灵感先留下，再用标签和项目慢慢整理，让收集的内容真正回到日常使用中。\n\n随手收集，离线保存\n通过右键菜单、快捷键或侧栏保存网页链接与选中文字；编写 Markdown 笔记，粘贴图片，主动录音，或截取当前网页的可见区域。内容先保存在当前浏览器，离线也能继续整理已保存的资料。\n\n把内容放进项目\n为记录添加多个标签，或放入不同项目。项目支持描述、子项目和关系图，帮你把资料与目标联系起来。“已整理”里的项目归属筛选，方便找出还没用在项目里的记录。\n\n让待读网页有个去处\n把多个网页收进网页组，逐个标记已读。既能移动单个网页，也能拖动整个组加入项目、添加标签或并入另一个网页组。\n\n打开新标签页，回到自己的知识\n安装并启用后，Chrome 新标签页会打开 GUGA 启动页。分别查看与编辑 Todo、Idea，回顾最近喜爱的网页，继续浏览网页组，打开项目记录。底部 Dock 可以添加常用网站，设置中可调整喜爱卡片数量。\n\n自己的资料，自己掌握\n使用自己的 Google 账号连接 Google Drive，手动决定何时下载或上传。记录、项目、关系、标签定义和 Dock 常用网站参与同步，图片与音频单独保存。也可以导出完整 ZIP，按项目或标签整理文件，以原名称保存 Markdown 和附件，便于阅读和备份。\n\n按照你的习惯使用\n提供英语、中文、法语、日语界面，六套配色主题、字体设置与页面伙伴。整理页支持多种排序，编辑时保留卡片位置，重新进入或主动重新排序后再应用顺序变化。\n\n日常离线使用无需注册 GUGA 账号；Google Drive 为可选连接。同步由你主动触发。没有广告、使用分析或自动 AI 处理。卸载扩展前，请先导出备份或确认云端已有完整资料。",
+      "screenshotCaptions": [
+        "新的一页，留给计划和灵感。",
+        "用项目和标签，让收集有处可用。",
+        "把笔记之间的关系，看得更清楚。",
+        "再次打开时，留下的内容就在眼前。",
+        "按项目或标签，把自己的资料带走。"
+      ]
+    },
+    "en": {
+      "name": "GUGA Knowledge",
+      "shortDescription": "Capture pages, notes and ideas. Organize offline with projects and tags, a start page, Drive sync and ZIP backups.",
+      "headline": "Make room for what matters.",
+      "tagline": "YOUR KNOWLEDGE, GUGUGAGA",
+      "description": "GUGA Knowledge is your browser’s personal knowledge inbox. Save useful pages, highlights, images and passing ideas, then bring them together with tags and projects so you can return to what you collect.\n\nCapture now, organize offline\nSave links and selected text from the context menu, a keyboard shortcut or the sidebar. Write Markdown notes, paste images, record audio when you choose, or capture the visible part of a page. Records stay in your current browser, ready to revisit and organize offline.\n\nGive your notes a place in your projects\nAdd multiple tags and link a record to more than one project. Use descriptions, subprojects and relationship graphs to connect material to your goals. Filter organized records by project membership to find material you have not put to use yet.\n\nKeep your reading queue together\nCollect pages into web groups and mark them as read. Move individual pages between groups, or drag a whole group into a project, onto a tag or into another group.\n\nYour knowledge in every new tab\nWhen enabled, GUGA opens as your Chrome new-tab page. Edit Todo and Idea lists, revisit recent favorites, continue unread web groups and open project cards. Add everyday sites to the Dock and choose how many favorite cards appear in settings.\n\nYour library, on your terms\nConnect your own Google Drive account and decide when to download or upload. Records, projects, relationships, tag definitions and Dock sites sync; images and audio are stored separately. Export a full ZIP organized by project or tag, with readable original Markdown names and attachments for browsing and backup.\n\nMake it comfortable\nChoose English, Chinese, French or Japanese, six color themes, fonts and a page companion. Sort records in several ways. Editing keeps your card in place until you reopen the view or re-sort.\n\nOffline use needs no GUGA account. Google Drive is optional, and sync starts only when you request it. No ads, usage analytics or automatic AI processing. Export a backup or confirm your cloud data is complete before uninstalling.",
+      "screenshotCaptions": [
+        "A little space for plans and ideas.",
+        "Give your saved knowledge a place to belong.",
+        "See how your notes connect.",
+        "Return to the details worth keeping.",
+        "Take your library with you, by project or tag."
+      ]
+    },
+    "fr": {
+      "name": "GUGA Knowledge",
+      "shortDescription": "Gardez pages, notes et idées. Classez hors ligne, retrouvez vos projets et sauvegardez avec Google Drive ou un ZIP.",
+      "headline": "Une place pour vos idées.",
+      "tagline": "YOUR KNOWLEDGE, GUGUGAGA",
+      "description": "GUGA Knowledge est votre boîte à connaissances dans le navigateur. Gardez pages utiles, extraits, images et idées spontanées, puis reliez-les avec des étiquettes et des projets pour retrouver ce que vous avez collecté.\n\nCapturez maintenant, classez hors ligne\nEnregistrez des liens et du texte sélectionné depuis le clic droit, un raccourci ou le panneau latéral. Rédigez en Markdown, collez des images, lancez un enregistrement audio ou capturez la partie visible d’une page. Vos fiches restent dans le navigateur, disponibles hors ligne.\n\nReliez les ressources à vos projets\nAjoutez plusieurs étiquettes et associez une fiche à différents projets. Descriptions, sous-projets et graphes vous aident à relier les ressources à vos objectifs. Filtrez les fiches classées selon leur appartenance à un projet pour repérer les ressources encore inutilisées.\n\nGardez vos lectures ensemble\nRegroupez des pages et marquez-les comme lues. Déplacez une page entre deux groupes, ou glissez le groupe entier dans un projet, sur une étiquette ou dans un autre groupe.\n\nVos connaissances dans chaque nouvel onglet\nQuand l’extension est activée, GUGA s’ouvre dans les nouveaux onglets Chrome. Retrouvez Todo et Idea, vos favoris récents, vos groupes à lire et vos projets. Ajoutez vos sites habituels au Dock et choisissez le nombre de favoris dans les paramètres.\n\nVotre bibliothèque, à votre rythme\nConnectez votre propre compte Google Drive et choisissez quand télécharger ou envoyer. Fiches, projets, relations, étiquettes et sites du Dock sont synchronisés ; images et audios sont séparés. Exportez un ZIP complet classé par projet ou étiquette, avec les noms Markdown d’origine et les pièces jointes pour lire et sauvegarder vos ressources.\n\nUn espace à votre goût\nChoisissez l’anglais, le chinois, le français ou le japonais, six palettes, vos polices et un compagnon. Plusieurs tris sont disponibles. Une modification conserve la position de votre carte jusqu’à la réouverture de la vue ou au nouveau tri.\n\nL’utilisation hors ligne ne nécessite pas de compte GUGA. Google Drive est facultatif ; la synchronisation commence à votre demande. Sans publicité, analyse d’usage ni traitement automatique par IA. Exportez une sauvegarde ou vérifiez vos données cloud avant de désinstaller.",
+      "screenshotCaptions": [
+        "Un peu de place pour vos tâches et vos idées.",
+        "Donnez une place à vos connaissances.",
+        "Découvrez les liens entre vos notes.",
+        "Retrouvez les détails qui comptent.",
+        "Emportez votre bibliothèque, par projet ou étiquette."
+      ]
+    },
+    "ja": {
+      "name": "GUGA Knowledge",
+      "shortDescription": "ウェブページ、ノート、アイデアを収集。タグとプロジェクトでオフライン整理し、スタートページ、手動 Google Drive 同期、ZIP バックアップを利用できます。",
+      "headline": "大切な知識に、居場所を。",
+      "tagline": "YOUR KNOWLEDGE, GUGUGAGA",
+      "description": "GUGA Knowledge は、ブラウザの中にある自分のための知識の受信箱です。気になったページ、抜粋、画像、ふと浮かんだアイデアを残し、タグやプロジェクトでつないで、集めたものをまた活用できるようにします。\n\nまず集めて、オフラインで整理\n右クリック、ショートカット、サイドバーからリンクや選択した文字を保存します。Markdown のノート、画像の貼り付け、明示的に開始する録音、ページの表示範囲の撮影にも対応しています。記録は現在のブラウザに保存され、オフラインでも整理できます。\n\n資料をプロジェクトにつなげる\n記録には複数のタグやプロジェクトを設定できます。説明、サブプロジェクト、関連図で、資料と目的を結び付けます。整理済みの記録をプロジェクトへの所属で絞り込み、まだ活用していない資料を見つけられます。\n\nあとで読むページをひとまとめに\nページをウェブグループに集め、既読にできます。単独のページを別グループへ移したり、グループ全体をプロジェクトやタグへドラッグしたり、別のグループに統合したりできます。\n\n新しいタブから、自分の知識へ\n拡張機能を有効にすると、Chrome の新しいタブに GUGA スタートページが開きます。Todo と Idea、最近のお気に入り、未読グループ、プロジェクトを確認できます。Dock にサイトを追加し、表示するお気に入りの件数を設定できます。\n\n自分の資料を、自分のタイミングで\n自分の Google Drive に接続し、手動でダウンロードやアップロードを行います。記録、プロジェクト、関連、タグ定義、Dock のサイトを同期し、画像と音声は別ファイルに保存します。プロジェクト別やタグ別の完全 ZIP を書き出し、元の名前の Markdown と添付ファイルを閲覧・バックアップできます。\n\n心地よい表示を選ぶ\n英語、中国語、フランス語、日本語、6 種類の配色、フォント、ページの仲間を選べます。記録は複数の方法で並べ替えられ、編集中はカードの位置を保ち、次回表示時や再並べ替え時に更新します。\n\nオフライン利用に GUGA のアカウント登録は必要ありません。Google Drive は任意で接続し、同期は操作したときだけ行います。広告、利用状況の分析、自動 AI 処理はありません。拡張機能を削除する前に、バックアップを書き出すかクラウドの資料を確認してください。",
+      "screenshotCaptions": [
+        "計画にも、アイデアにも、少しの余白を。",
+        "集めた知識を、プロジェクトで活かそう。",
+        "ノート同士のつながりを見つける。",
+        "大切な内容を、いつでも見返す。",
+        "プロジェクトやタグごとに、資料を持ち出そう。"
+      ]
+    }
+  }
+}

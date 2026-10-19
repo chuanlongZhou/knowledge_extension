@@ -1,3 +1,4 @@
+import { t } from './i18n.js';
 import { websiteTitle, linkDropTitles, shortWebsiteTitle, isPlaceholderTitle } from './websites.js';
 import { safeUrl } from './model.js';
 export async function openWebsiteTabs() {
@@ -18,7 +19,9 @@ export const websiteItem = (tab) => ({
   read_at: null,
 });
 export async function closeCapturedTabs(pending, record) {
-  const saved = new Set(record.url_list.filter((item) => !item.removed_at).map((item) => safeUrl(item.url))),
+  const saved = new Set(
+      record.url_list.filter((item) => !item.removed_at).map((item) => safeUrl(item.url)),
+    ),
     closed = [],
     skipped = [];
   for (const tab of new Map(pending.map((tab) => [tab.id, tab])).values()) {
@@ -55,9 +58,10 @@ export async function droppedWebsites(data) {
     try {
       values = JSON.parse(internal);
     } catch {
-      throw new Error('拖入的标签页格式不正确。');
+      throw new Error(t('拖入的标签页格式不正确。'));
     }
-    if (!Array.isArray(values) || values.length > 1000) throw new Error('拖入的标签页格式不正确。');
+    if (!Array.isArray(values) || values.length > 1000)
+      throw new Error(t('拖入的标签页格式不正确。'));
     const tabs = [];
     for (const value of values) {
       const tab = await chrome.tabs.get(value.id);
@@ -75,7 +79,7 @@ export async function droppedWebsites(data) {
   const hints = linkDropTitles(data.getData('text/html'));
   const items = [];
   for (const url of urls) {
-    if (!safeUrl(url)) throw new Error('只能拖入 HTTP / HTTPS 网页链接。');
+    if (!safeUrl(url)) throw new Error(t('只能拖入 HTTP / HTTPS 网页链接。'));
     const matches = tabs.filter((tab) => safeUrl(tab.url) === safeUrl(url));
     if (matches.length === 1) matched.push(matches[0]);
     const known = matches[0]?.title;

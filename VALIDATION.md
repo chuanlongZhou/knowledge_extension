@@ -1,4 +1,119 @@
-# PKM Nexus 验证记录
+# GUGA Knowledge 验证记录
+
+## 2026-10-19：商店上传包清单
+
+- 首次上传反馈 `key field is not allowed in manifest`。商店 ZIP 构建现移除 `manifest.key`，本地解压目录保留公钥。发行包检查明确验证 ZIP 根目录清单无 `key`；Google OAuth 须在商店分配 ID 后核对，不能凭本地固定 ID 推定商店版可登录。
+
+## 2026-10-19：Dock 常用网站同步
+
+- Dock 网站、顺序、改名与清空通过独立 Drive 元数据文件在双设备间手动上传 / 下载；旧 `chrome.storage.local.startPage.shortcuts` 在启动页或同步前迁入，首次上传不丢现有网站。下载与记录同事务应用，双方同时修改时保留本机列表并要求选择版本。
+- Drive 单元测试新增跨设备往返、冲突选择、下载竞态和完整 ZIP 备份 / 旧备份兼容验证。两套隔离浏览器通过正式扩展后台与本机模拟 Google HTTP 服务，实际添加 Dock、上传、第二设备下载 / 修改、回传并校验 ZIP。未访问真实 Google 账号。
+- 同步状态区分标签定义和常用网站；文档、隐私说明及四语商店介绍与新数据流一致。
+
+## 2026-10-19：置顶、弹窗与启动页清单
+
+- 记录可从整理页或启动页预览置顶；启动页优先展示置顶记录，取消置顶后消失，刷新后状态保持。既有整理页置顶排序回归通过。
+- Todo / Idea 不再截断为少数条目，两个列表各自滚动；`---` 创建真正的分隔线，旧的同名条目在启动页也按分隔线显示；条目与分隔线可直接删除。启动页新增相应浏览器回归。
+- 启动页与整理页的对话框支持点击外部背景关闭；嵌套弹窗关闭后父弹窗保持。启动页浏览器专项 9 项、整理页交互专项 9 项、四语专项 6 项、离线说明专项 1 项通过。
+- 136 项单元测试、ESLint、发行构建与包内入口校验通过。测试使用隔离浏览器，未访问真实 Google 账号。
+
+## 2026-10-19：原生新标签页与样例隐藏设置
+
+- Chrome 原生 `chrome_url_overrides.newtab` 固定指向启动页；安装并启用后点击浏览器“+”或按 Ctrl+T 打开 GUGA。启动页浏览器专项 7 项通过。
+- 设置新增“完全隐藏内置示例”；隐藏时收件箱卡片与侧栏底部入口都消失，刷新后保持，个人记录不受影响。重新显示时，已打开的整理页和侧边栏会加载样例。示例浏览器专项 9 项通过。
+- 设置 / 网页组浏览器专项 8 项、离线说明 1 项通过；四语界面专项 6 项通过。上架素材已重新生成并通过尺寸、字段及打包校验。
+- 136 项单元测试、ESLint、发行构建与包内入口校验通过。测试均使用隔离浏览器；未访问真实 Google 账号。真实 OAuth 发布配置与商店身份绑定仍需发布者验收。
+
+以下为此前验证记录；涉及启动页行为时以本节为准。
+
+## 2026-10-18：0.9.1 上架前审查修复
+
+- 136 项单元测试通过，ESLint 与差异空白检查通过。新增超过 32 MiB 聚合清单的完整恢复、普通成员大小限制及压缩数据超出声明大小的用例；移除已退役的新标签页拦截测试。
+- 大备份回归使用 12 条合法记录（每条 950,000 个中文字符）和一个附件。backup.json 超过 32 MiB，约 103 MB 的完整 ZIP 成功导出、预览、导入；逐条核对恢复内容和附件字节。单附件与普通 ZIP 成员限制仍保留。
+- 26 项隔离浏览器检查通过：启动页 / 排序 7、四语 6、备份导出 3、模拟 Drive 10。欢迎页和设置手动打开启动页；旧 enabled=true 不再替换空白新标签页。Todo / Idea、Dock、项目、稳定排序、语言及侧栏草稿恢复正常。
+- 发行 ZIP 根目录含 manifest.json，入口与图标和源码一致，无旧 Companion 模块及安装器。npm run build 自动执行商店包验证，CI 同样执行。重新生成四语上架文案、预览与素材 ZIP，并通过素材校验。
+- Drive 使用本机模拟 HTTP 与隔离账号。需要请求本机服务和下载的浏览器验证在沙箱外运行，以避开沙箱网络 / 下载限制；未访问真实 Google 账号。真实 OAuth 发布配置和商店身份绑定仍需发布者验收。
+
+以下为此前版本的历史验证记录；新标签页替换行为以本节为准。
+
+## 0.9.1：英语、中文、法语与日语
+
+- 全部 134 项核心 / 单元测试通过，ESLint 通过。新增界面消息及静态标记的三语完整性检查、占位符一致性、语言别名和回退；插值不重新解析用户内容。切换语言不改变记录规范 JSON 的哈希。
+- 语言专项六项通过：真实设置页依次应用 en / fr / ja / zh-CN，整理导航、排序、启动页、项目弹窗和本地使用说明采用对应语言，四种语言的启动页与设置在 360px 无横向溢出。名称恰好为“取消”“标签”“项目”“设置与数据管理”的用户记录、项目与 Dock 不被翻译。
+- 从侧栏实际打开设置并切换语言，未提交标题和正文保存为草稿；刷新侧栏后编辑内容恢复，工具栏标题采用法语。四次语言切换前后，记录 JSON、哈希和修订完全相同，不创建内容副本。
+- 直接 Drive、启动页 / 排序、设置 / 网页组、连续收集、卡片交互、项目 / 关系图、主题 / 项目筛选回归通过。Drive 使用隔离配置与本机模拟 HTTP，不操作用户 Google 数据。默认中文与原行为保持兼容。
+- 语言翻译与三份新增说明随包离线提供，不使用在线翻译服务，无新增权限。截图 test-results/start-page-english.png、start-page-japanese.png、settings-french.png、sidebar-french.png；报告 language-browser-report.json。交付 dist/pkm-nexus 和 dist/GUGA-Knowledge-0.9.1-direct-drive.zip，扩展身份与 OAuth 客户端保留。
+
+## 0.9.0：可选启动页与编辑后的稳定排序
+
+- 全部 132 项核心 / 单元测试通过，ESLint 与差异空白检查通过。新增顺序冻结、分页 / 搜索、五种排序与方向、缺值和新增记录、新标签页开关及导航竞态、Todo / Idea 并发编辑、Dock 网址校验等验证。
+- 启动页专项七项浏览器检查通过：首次安装默认关闭、同意 / 拒绝保存选择，真实 `chrome.tabs.create` 新建空白页在开启时进入启动页、关闭时恢复浏览器页面，普通网站链接保留原网址。使用两个全新隔离配置，不操作用户的浏览器设置。
+- 实际编辑 Todo / Idea 并勾选，保留另一分区与清单原有备注；项目弹窗显示成员及子项目，记录可打开详情与原编辑器；Dock 添加、调整顺序、刷新恢复，设置切换 5 / 8 / 10 张喜爱卡片，桌面和 360px 启动页无横向溢出。
+- 在每页 3 条的真实整理页编辑中间卡片，修改时间变动后仍停留当前页；重新进入和主动重新排序才换位，加载更多保留既有顺序，五种模式及方向跨刷新恢复。快照顺序在分页前应用，不修改资料自身的时间戳规则。
+- 回归已通过直接 Drive、可读 ZIP、设置与网页拖放、连续收集、卡片交互、六套主题 / 项目筛选、离线帮助；Drive 使用本机模拟 Google HTTP，未操作用户真实云端数据。启动页不新增权限或自动同步。
+- 示例截图为 test-results/guga-start-desktop.png、guga-start-mobile.png、guga-record-sorting.png，报告为 start-page-browser-report.json。交付 dist/pkm-nexus 与 dist/GUGA-Knowledge-0.9.0-direct-drive.zip；固定公钥及 OAuth 客户端保留。
+
+## 0.8.4：增量读取、分类云端目录与可读 ZIP
+
+- 全部 127 项核心 / 单元测试通过，ESLint、构建与差异空白检查通过。12 条记录首次下载后，重开数据库再下载的 JSON 正文请求为 0；云端只修改 1 条后，只读取该条正文，另外 11 条复用持久缓存。缓存损坏回源、文件移除后的缓存清理和基于缓存 ETag 的并发写保护均通过。
+- 记录读取 / 附件下载上限为四路；失败等待在途工作结束。独立 driveCache 存储的 v4 → v5 库升级保持原记录 hash / rev / dirty、标签描述与同步基线。中断云端整理后可以继续剩余文件，不产生重复记录。
+- 云端新目录与旧平铺混合读取；整理预览仅 GET，移动保留 Drive 文件 ID 与二进制内容，未知用途文件保留。所有设备需先更新到 0.8.4，再上传新文件或整理目录。此项使用正式客户端和模拟 HTTP 验证，未操作用户真实 Google Drive。
+- 五套隔离浏览器测试通过：直接 Drive 十项，导出布局三项，图片预览六项，设置 / 网页组八项，离线帮助一项。直接 Drive 实际点击目录预览 / 整理与重复下载，确认未变化 JSON 不再请求正文；冲突、标签定义、图片与完整备份继续可用。
+- 导出专项实际点击取消、按项目导出完整 ZIP、按标签导出 Markdown ZIP，并检查 360px 界面；验证项目层级 / 描述、多项目和多标签阅读副本、原名 / 重名、未分类文件、标签描述、唯一恢复数据以及每份 Markdown 的图片相对路径。报告 test-results/export-layout-browser-report.json；示例 ZIP 为 project-organized-backup.zip 和 tag-organized-markdown.zip，窄屏截图 export-layout-narrow.png。
+- 交付 dist/pkm-nexus 与 dist/GUGA-Knowledge-0.8.4-direct-drive.zip，固定扩展身份和 OAuth 客户端保留。缓存可重建且不导出；备份恢复仍读取 backup.json，不把外部修改的 Markdown 作为恢复源。详细行为见 docs/drive-layout-proposal.md（已更新为实现说明）。
+
+## 0.8.3：标签描述、定义同步与备份
+
+- 全部 116 项单元 / 核心测试通过，ESLint 与构建通过。新增项目描述 / 外观 / 父子层级 / 归属 / 图关系的真实同步路径核验，空标签与颜色 / 描述跨设备传输，双方同时修改后的本地及云端版本选择，并发编辑导致整批下载回滚，ZIP 恢复与旧备份兼容。
+- 隔离 Chromium 的直接 Drive 套件九项通过：两个后台 Worker 经本机模拟 Google HTTP 同步标签，实际界面修改描述、显示待上传、另一设备读取；双方修改后冲突界面展示版本，选择浏览器版本并手动上传；下载的完整 ZIP 含最终标签定义且无授权凭证。
+- 设置 / 网页组套件八项回归通过，覆盖整组与单网页拖动、目录入口、页面伙伴和 360px 布局。真实 Google API 数据未读写，双设备测试使用隔离配置和模拟服务。
+- 验证当前云端缺项行为：删除普通 JSON 不删除浏览器副本，该记录修改后上传跳过并报告缺项，其他记录可继续；删除被引用附件会阻止缺少本地副本的设备下载；删除子项目所需的父项目会让新设备的整批下载因层级不完整而回滚。未新增自动修复功能。
+- 交付 dist/pkm-nexus 与 dist/GUGA-Knowledge-0.8.3-direct-drive.zip。保留固定公钥及 OAuth 客户端，原目录不迁移；性能改造与分目录仍为 docs/drive-layout-proposal.md 中的建议。
+
+## 0.8.2：GUGA Knowledge、图片收集预览与整组并入
+
+- `npm test`：108 项通过；ESLint、构建与差异空白检查通过。新增多组网页原子并入、重复网址与已读状态、来源注释保留及容量 / 类型错误不部分清空的验证。
+- 图片问题：assetView 在父预览异步组装期间提前读到本地附件，旧 isConnected 判断丢弃了结果。改为只在 dispose 后停止渲染，并回收预览 URL；图片读取早于挂载可正常显示。编辑器保存会等待正在上传 / 粘贴的全部图片，预览期间收到图片时刷新预览。网页原图未取得时明确提示只保存了链接。
+- `test:image-preview-browser` 六项通过：固定扩展 ID 与新品牌、尚未挂载的预览与关闭后的读取、暂停附件写入时立即点击保存、Ctrl+V、实际后台网页图片收集、含图片原文件的新品牌 ZIP 与旧协议兼容。截图 test-results/image-auto-preview.png，报告 image-preview-report.json。
+- 拖放：恢复标题 / 卡片空白 / 整组柄；Chromium 可能将嵌套网页链接的 dragstart 交给外层 article，现按 pointerdown 起点区分单项。按住和拖动期间延后卡片刷新。整组可加入项目 / 标签，也可把全部有效网页并入另一组；来源组的正文、标签、关系和已删除网页保留。
+- `test:settings-browser` 八项通过，新增标题并入、卡片空白加入项目，继续验证单网页与整组不同数据类型、目录新标签页、三种伙伴模式和 360px 布局。专项异步数据库检查改为显式轮询真实布尔结果，避免浏览器等待工具把 Promise 本身当作成功。
+- 共九套隔离浏览器测试通过：图片专项、设置 / 拖放、连续收集、直接 Drive、示例、卡片交互、帮助、权限、主题与关系图。Drive 新增实际 PNG 上传 / 下载后另一设备的普通预览自动解码检查；Google HTTP 仍为模拟，不读取用户云端数据。
+- 本地界面、扩展清单、右键菜单、帮助、导出及网站源文件更新品牌。原数据库名、记录 ID、备份 format、OAuth 客户端与 manifest.key 保留兼容。Google 授权页需由维护者在 Cloud Branding 改名，网站源文件未部署。
+- 云端目录整理仅形成 docs/drive-layout-proposal.md，未迁移用户文件；现有客户端仍只读根目录。交付 dist/pkm-nexus 与 dist/GUGA-Knowledge-0.8.2-direct-drive.zip。
+
+## 0.8.1：网页单项拖放、设置布局与页面伙伴
+
+- `npm test`：106 项通过；ESLint、构建和差异空白检查通过。新增网页移动的双组原子保存、已读状态与身份保留、重复网址合并、并发更新重试、目标满载 / 删除时保留来源，以及伙伴三种模式与偏好校验。
+- `test:settings-browser` 七项通过：真实拖动单网页柄与网页标题、整组拖到项目、完整预览里移动前五条之外的网页、实际点击目录按钮打开对应新标签页、统一卡片内边距与内容区滚动、五个 PNG 的透明通道、固定 / 随机 / 循环与可选间隔、跨整理页 / 侧栏更新及刷新保存、360px 无横向溢出与可见页脚。随机模式避免连续重复，循环按六张图片的顺序切换。报告 test-results/settings-and-websites-report.json。
+- 本轮共九套隔离浏览器测试通过：新增设置 / 网页拖放、直接 Drive 同步、权限、内置示例、卡片交互、主题和关系图、项目筛选与六套配色、离线帮助、外部网页标题和链接收集。Drive 测试仍使用模拟 Google HTTP，目录测试拦截为本机测试页面，未访问用户云端资料。
+- 桌面与 360px 截图：settings-redesign-desktop.png、settings-redesign-narrow.png、mascot-modes-desktop.png、mascot-modes-narrow.png、website-item-drag.png，均位于 test-results。五张透明图片保存在 extension/icons/mascots；内置 image_gen 处理方式、素材路径及最终提示词记录于 docs/mascot-assets.json。
+- 交付 dist/pkm-nexus 和 dist/PKM-Nexus-0.8.1-direct-drive.zip。CI 已纳入新浏览器套件；此处记录本机结果，不表示远端 GitHub 检查已运行。
+
+## 0.8.0：Google Drive 403 原因诊断与限流重试
+
+- 原有统一 403 文案丢弃了 Google 错误响应，无法据此确定用户实际原因。客户端现限量读取错误 JSON，区分 API 未启用、OAuth 范围不足、文件权限、项目配额、存储空间、组织策略与限流；未知错误保留有长度限制且隐藏当前令牌的 Google 提示和原因码。API 未启用时显示 Google 返回的项目编号，不为权限或配置错误重试。
+- 403 的 rateLimitExceeded / userRateLimitExceeded 与 429、临时服务器错误使用有限次数退避重试；授权失效或范围不足时清除缓存令牌，便于重新登录。保持原生 fetch 上下文修复和 drive.file 权限，不扩大授权范围。
+- `npm test`：102 项通过；ESLint、构建通过。新增 Google 标准 ErrorInfo、旧版错误格式、重试次数、令牌清理、未知 / 非 JSON / 超限错误体与成功文件大小限制的检查。
+- 隔离 Chromium 实测后台 403 经消息传到设置页，显示 SERVICE_DISABLED、项目编号及启用步骤，之后可重新登录；两设备模拟 Google HTTP 的上传下载、冲突选择、ZIP 导出、退出保留数据回归通过。截图 test-results/direct-drive-api-disabled.png。此错误在测试中主动注入，不能据此认定用户 Google 项目确实未启用 API；用户反馈真实登录成功，真实 Drive 读写仍待验收。
+
+## 0.8.0：Google 登录后原生 fetch 调用修复
+
+- 在真实 Chromium Service Worker 中，使用正式 Drive 客户端保存的原生 fetch 读取扩展自身资源，修复前复现与用户一致的 `WorkerGlobalScope: Illegal invocation`。原先箭头函数模拟传输忽略调用接收者，未覆盖此问题。
+- 默认网络传输绑定到 globalThis，避免作为客户端实例方法调用时丢失 Worker 上下文；在替换模拟 Google HTTP 传输前检查原生 fetch，并继续验证账号信息读取、双设备文件夹、上传下载、冲突选择与 ZIP 备份。真实 Google 账号下后续 Drive 读写仍需用户验收。
+
+## 0.8.0 简化版：直接 Google Drive
+
+- `npm test`：85 项通过，0 失败、0 跳过；ESLint 通过。覆盖单文件更新、二进制附件、同记录冲突、条件写入竞态、丢失响应重试、账号隔离、损坏文件、项目批次、重复创建与下载期间的浏览器编辑。
+- 两个隔离 Chromium 通过正式客户端与本机模拟 Google HTTP 服务完成登录界面、创建文件夹、上传、新设备选择文件夹与下载、冲突查看和版本选择、完整 ZIP 导出及退出登录保留数据。报告 test-results/direct-drive-browser-report.json；截图 direct-drive-settings.png、direct-drive-login.png、direct-drive-dashboard.png。OAuth API 在隔离测试扩展中替换；未访问用户 Google 账号。
+- 四项稳定性浏览器检查通过，修复了重开页面等待错误标题的问题；离线说明书、主题与项目归属筛选验证通过。浏览器及导出备份保留原数据，无自动上传下载。
+- 新构建 dist/PKM-Nexus-0.8.0-direct-drive.zip 不含可执行文件、安装包或 Native Messaging 入口。已接入用户提供的 Chrome 扩展 OAuth 客户端 ID，并固定 manifest.key；简化版 ID 为 jjpdanoikikedmildkmhndmbjnajjaho，原版数据通过 ZIP 迁移。Google 端须更新绑定；真实 Google 登录、实际 Drive v2 条件更新行为及两台真实设备验收仍待完成，不将模拟结果当成正式发布验证。
+- 简化版 CI 保留的 11 套浏览器测试在本机全部通过，包括权限、外站链接、示例、侧栏交互、连续收集、项目、主题、筛选、稳定性、新帮助和直接同步；本地通过不代表 GitHub 远端检查已经运行。
+
+## 未发布：标签、项目归属筛选与六套配色
+
+- ESLint 通过；项目相关单元测试 20 项通过，包括筛选与搜索、标签、类型及置顶组合，65 条以上记录的分页，以及已删除和不存在项目的归属处理。
+- 隔离 Chromium 的 `npm run test:customization-browser` 通过：标签不显示计数、已整理筛选与刷新恢复、全部 21 个 HEX、六套逐一预览和取消恢复、主题在整理页 / 360px 侧栏 / 帮助页保存应用、字体保留与窄屏无横向溢出。
+- 截图与报告在 test-results/organized-project-filter.png、six-theme-presets.png、six-theme-presets-narrow.png、ocean-mist-dashboard.png 和 ui-customization-report.json。生成了不含 Companion 安装包的扩展预览；本轮未执行完整发行构建、真实 Google 授权或全量 Windows Companion 测试。
 
 ## 2026-10-17：0.7.3 恢复新版下载及实际下载包验证
 

@@ -626,6 +626,10 @@ try {
   await scenario('O04', async () => {
     const download = a.page.waitForEvent('download');
     await a.page.locator('#save-local').click();
+    await a.page
+      .getByRole('dialog', { name: '选择导出整理方式', exact: true })
+      .getByRole('button', { name: '开始导出', exact: true })
+      .click();
     const file = path.join(run, 'demo-backup.zip');
     await (await download).saveAs(file);
     const entries = await readZip(new Blob([await readFile(file)]));

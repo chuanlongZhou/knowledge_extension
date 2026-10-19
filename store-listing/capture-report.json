@@ -1,0 +1,127 @@
+{
+  "version": "0.9.1",
+  "source": "Actual extension UI in isolated profiles; author-written localized demo records; no personal or Google data",
+  "screenshots": [
+    {
+      "language": "zh-CN",
+      "file": "assets/screenshots/zh-CN/01-start-page.png",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "language": "zh-CN",
+      "file": "assets/screenshots/zh-CN/02-organize.png",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "language": "zh-CN",
+      "file": "assets/screenshots/zh-CN/03-project-graph.png",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "language": "zh-CN",
+      "file": "assets/screenshots/zh-CN/04-record-preview.png",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "language": "zh-CN",
+      "file": "assets/screenshots/zh-CN/05-export-backup.png",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "language": "en",
+      "file": "assets/screenshots/en/01-start-page.png",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "language": "en",
+      "file": "assets/screenshots/en/02-organize.png",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "language": "en",
+      "file": "assets/screenshots/en/03-project-graph.png",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "language": "en",
+      "file": "assets/screenshots/en/04-record-preview.png",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "language": "en",
+      "file": "assets/screenshots/en/05-export-backup.png",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "language": "fr",
+      "file": "assets/screenshots/fr/01-start-page.png",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "language": "fr",
+      "file": "assets/screenshots/fr/02-organize.png",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "language": "fr",
+      "file": "assets/screenshots/fr/03-project-graph.png",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "language": "fr",
+      "file": "assets/screenshots/fr/04-record-preview.png",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "language": "fr",
+      "file": "assets/screenshots/fr/05-export-backup.png",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "language": "ja",
+      "file": "assets/screenshots/ja/01-start-page.png",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "language": "ja",
+      "file": "assets/screenshots/ja/02-organize.png",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "language": "ja",
+      "file": "assets/screenshots/ja/03-project-graph.png",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "language": "ja",
+      "file": "assets/screenshots/ja/04-record-preview.png",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "language": "ja",
+      "file": "assets/screenshots/ja/05-export-backup.png",
+      "width": 1280,
+      "height": 800
+    }
+  ],
+  "errors": []
+}

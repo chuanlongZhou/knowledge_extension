@@ -1,3 +1,4 @@
+import { t, getLanguage } from './i18n.js';
 import { safeUrl } from './model.js';
 import { icon } from './icons.js';
 
@@ -24,10 +25,23 @@ export function button(label, action, className = 'button') {
       type: 'button',
       class: className,
       onclick: action,
-      ...(label === '⌫' ? { 'aria-label': '移入回收站' } : {}),
+      ...(label === '⌫' ? { 'aria-label': t('移入回收站') } : {}),
     },
     label === '⌫' ? icon('trash') : label,
   );
+}
+export function closeOnBackdrop(dialog) {
+  dialog.addEventListener('click', (event) => {
+    if (event.target !== dialog) return;
+    const { left, right, top, bottom } = dialog.getBoundingClientRect();
+    if (
+      event.clientX < left ||
+      event.clientX > right ||
+      event.clientY < top ||
+      event.clientY > bottom
+    )
+      dialog.close();
+  });
 }
 export function field(label, input, hint = '') {
   return el(
@@ -42,7 +56,7 @@ export function option(value, label, selected = false) {
   return el('option', { value, selected }, label);
 }
 export function dateLabel(value) {
-  return new Intl.DateTimeFormat('zh-CN', {
+  return new Intl.DateTimeFormat(getLanguage(), {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -65,10 +79,12 @@ export function assetView(descriptor, { load, local = async () => null } = {}) {
     status = el(
       'small',
       { class: 'muted' },
-      `${descriptor.kind === 'image' ? '图片' : descriptor.kind === 'snapshot' ? '网页快照' : '录音'} · ${(descriptor.size_bytes / 1024).toFixed(1)} KB`,
+      `${descriptor.kind === 'image' ? t('图片') : descriptor.kind === 'snapshot' ? t('网页快照') : t('录音')} · ${(descriptor.size_bytes / 1024).toFixed(1)} KB`,
     );
-  let objectUrl;
+  let objectUrl,
+    disposed = false;
   const show = (blob) => {
+    if (disposed) return;
     if (objectUrl) URL.revokeObjectURL(objectUrl);
     objectUrl = URL.createObjectURL(blob);
     const node =
@@ -76,20 +92,27 @@ export function assetView(descriptor, { load, local = async () => null } = {}) {
         ? el(
             'a',
             { href: objectUrl, download: descriptor.name, class: 'button small' },
-            '下载网页快照',
+            t('下载网页快照'),
           )
         : descriptor.kind === 'image'
-          ? el('img', { src: objectUrl, alt: descriptor.name, loading: 'lazy' })
+          ? el('img', { src: objectUrl, alt: descriptor.name })
           : el('audio', { src: objectUrl, controls: true, preload: 'none' });
     display.replaceChildren(node);
+    if (descriptor.kind === 'image')
+      node.addEventListener('error', () => {
+        if (disposed || display.firstChild !== node) return;
+        status.textContent = t('图片无法解码，请重新收集原图或导入完整备份。');
+        status.className = 'error-text';
+        loadButton.hidden = false;
+      });
     loadButton.hidden = true;
   };
   const loadButton = button(
     descriptor.kind === 'image'
-      ? '加载图片'
+      ? t('加载图片')
       : descriptor.kind === 'snapshot'
-        ? '加载快照'
-        : '加载录音',
+        ? t('加载快照')
+        : t('加载录音'),
     async () => {
       loadButton.disabled = true;
       try {
@@ -106,7 +129,7 @@ export function assetView(descriptor, { load, local = async () => null } = {}) {
   if (descriptor.kind === 'image')
     root.append(
       button(
-        '下载图片',
+        t('下载图片'),
         async () => {
           try {
             download(descriptor.name, await load(descriptor), descriptor.mime_type);
@@ -125,11 +148,14 @@ export function assetView(descriptor, { load, local = async () => null } = {}) {
   );
   local(descriptor)
     .then((blob) => {
-      if (blob && root.isConnected) show(blob);
+      // A preview can still be detached while its asynchronous parent is being assembled.
+      if (blob) show(blob);
     })
     .catch(() => {});
   root.dispose = () => {
+    disposed = true;
     if (objectUrl) URL.revokeObjectURL(objectUrl);
+    objectUrl = null;
   };
   return root;
 }

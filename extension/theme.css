@@ -10,6 +10,39 @@
   font-size: var(--font-general);
   font-family: var(--family-general, sans-serif);
 }
+.sorting-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 10px 0 20px;
+}
+.sorting-toolbar select {
+  max-width: 180px;
+}
+.sorting-toolbar small {
+  margin-left: auto;
+}
+body[data-mode='panel'] .panel-footer > .button {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+@media (max-width: 600px) {
+  html:not([lang='zh-CN']) .type-tabs,
+  html:not([lang='zh-CN']) body[data-mode='panel'] .type-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  html:not([lang='zh-CN']) .type-tabs .type-tab,
+  html:not([lang='zh-CN']) body[data-mode='panel'] .type-tabs .type-tab {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  html:not([lang='zh-CN']) body[data-mode='panel'] .content {
+    padding-bottom: 320px;
+  }
+}
 body,
 button,
 input,
@@ -316,6 +349,75 @@ body[data-mode='panel'] .panel-brand {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
+.theme-presets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 18px 0;
+}
+.drive-settings-controls,
+.drive-folder-choices {
+  display: grid;
+  gap: 12px;
+}
+.drive-settings-controls h4 {
+  margin: 10px 0 0;
+}
+.conflict-preview {
+  max-height: 230px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 12px;
+  background: var(--paper);
+  color: var(--ink);
+}
+.theme-preset {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  padding: 13px;
+  text-align: left;
+  color: var(--preset-ink);
+  background: var(--preset-paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+  font: inherit;
+}
+.theme-preset:hover,
+.theme-preset[aria-pressed='true'] {
+  border-color: var(--preset-accent);
+  box-shadow: inset 0 0 0 1px var(--preset-accent);
+}
+.theme-preset-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+.theme-preset-selected {
+  min-width: 1em;
+  color: var(--preset-accent);
+  font-weight: 700;
+}
+.theme-preset-name {
+  font-family: Georgia, serif;
+  font-size: 20px;
+  line-height: 1.25;
+}
+.theme-preset-swatches {
+  display: flex;
+  height: 24px;
+  overflow: hidden;
+  border-radius: 4px;
+}
+.theme-preset-swatch {
+  flex: 1;
+}
+.page-eyebrow {
+  color: color-mix(in srgb, var(--theme-secondary) 40%, var(--ink));
+}
 .theme-font-row {
   display: grid;
   grid-template-columns: 100px 75px minmax(0, 1fr);
@@ -422,6 +524,12 @@ select,
   background-color: var(--paper);
 }
 @media (max-width: 600px) {
+  .theme-preset {
+    padding: 10px;
+  }
+  .theme-preset-name {
+    font-size: 17px;
+  }
   .theme-colors {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -433,5 +541,225 @@ select,
 @media (prefers-reduced-motion: reduce) {
   .brand-penguin {
     transition: none;
+  }
+}
+
+/* Settings own their scroll area; padding is independent of editor dialogs. */
+.settings-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  width: min(920px, calc(100vw - 48px));
+  height: min(880px, calc(100dvh - 48px));
+  max-height: calc(100dvh - 48px);
+  overflow: hidden;
+}
+.settings-dialog > .dialog-header,
+.settings-dialog > .dialog-footer {
+  position: static;
+  flex: none;
+  padding: 18px 24px;
+}
+.settings-dialog > .dialog-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 24px;
+  background: var(--paper);
+  scrollbar-gutter: stable;
+}
+.settings-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 16px;
+}
+.settings-intro,
+.settings-storage,
+.settings-dialog .settings-section {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.settings-intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+.settings-dialog .settings-section {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  padding: 22px;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--white);
+}
+.settings-dialog .settings-half {
+  grid-column: auto;
+}
+.settings-dialog h3 {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.4;
+}
+.settings-dialog h4 {
+  font-size: inherit;
+  margin: 6px 0 0;
+}
+.settings-dialog p,
+.settings-dialog .field {
+  margin: 0;
+}
+.settings-dialog .description {
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.settings-dialog .row {
+  gap: 10px;
+}
+.settings-dialog .button,
+.settings-dialog .link-button {
+  align-self: flex-start;
+  max-width: 100%;
+  white-space: normal;
+}
+.settings-dialog .drive-settings-controls > .button,
+.settings-dialog .drive-settings-controls > .link-button {
+  justify-self: start;
+}
+.settings-dialog .drive-settings-controls {
+  gap: 16px;
+}
+.settings-dialog input,
+.settings-dialog select {
+  min-width: 0;
+}
+.settings-storage {
+  padding: 0 4px;
+}
+.drive-folder-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 10px;
+  background: var(--paper);
+  overflow-wrap: anywhere;
+}
+.drive-folder-summary > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.drive-open-folder {
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.mascot-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+.mascot-controls .field {
+  flex: 1;
+  min-width: 120px;
+}
+.mascot-controls > .button {
+  align-self: flex-end;
+}
+.mascot-choices {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+.mascot-choice {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px 6px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.mascot-choice img {
+  width: 64px;
+  height: 70px;
+  max-width: 100%;
+  object-fit: contain;
+}
+.mascot-choice span {
+  font-size: 12px;
+}
+.mascot-choice[aria-pressed='true'] {
+  border-color: var(--green);
+  box-shadow: 0 0 0 1px var(--green);
+  background: var(--green-light);
+}
+.website-drag-handle,
+.record-drag-handle {
+  flex-shrink: 0;
+  padding: 2px 5px;
+  border: 0;
+  border-radius: 4px;
+  color: var(--muted);
+  background: transparent;
+  cursor: grab;
+}
+.website-drag-handle {
+  font-size: 20px;
+  line-height: 1;
+}
+.record-drag-handle {
+  font-size: 12px;
+  border: 1px dashed var(--line);
+}
+.website-drag-handle:hover,
+.record-drag-handle:hover {
+  background: var(--green-light);
+  color: var(--green);
+}
+.website-drag-handle:active,
+.record-drag-handle:active {
+  cursor: grabbing;
+}
+.website-preview-line.dragging {
+  opacity: 0.45;
+}
+@media (max-width: 600px) {
+  .settings-dialog[open] {
+    width: calc(100vw - 16px);
+    height: calc(100dvh - 24px);
+    max-height: calc(100dvh - 24px);
+  }
+  .settings-dialog > .dialog-header,
+  .settings-dialog > .dialog-footer {
+    padding: 14px 16px;
+  }
+  .settings-dialog > .dialog-body {
+    padding: 12px;
+    gap: 12px;
+    scrollbar-gutter: auto;
+  }
+  .settings-dialog .settings-section {
+    padding: 16px;
+    gap: 12px;
+  }
+  .settings-dialog .settings-half {
+    grid-column: 1 / -1;
+  }
+  .mascot-choices {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .drive-folder-summary {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

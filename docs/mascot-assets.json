@@ -1,0 +1,25 @@
+{
+  "tool": "Built-in image_gen; background-extraction",
+  "assets": [
+    {
+      "path": "extension/icons/mascots/sleeping-penguin.png",
+      "prompt": "Use case: background-extraction. Edit target: supplied image sleeping-penguin. Produce one clean transparent PNG cutout for a small browser sidebar mascot. Remove only the outer white/cream/gray rectangular background and any screenshot border. Preserve the complete original subject, pose, colors, hand drawn texture, contours, face and white interior areas; do not redraw or change the character. Keep the subject large and centered with a narrow transparent margin.   Actual alpha transparency, not a checkerboard illustration. No extra decorations or new text."
+    },
+    {
+      "path": "extension/icons/mascots/round-penguin.png",
+      "prompt": "Use case: background-extraction. Edit ONLY the exterior white background of the supplied flat cartoon baby penguin to alpha transparency. This is a strict flat-color cutout: preserve the uniform original light gray body fill, uniform dark brown head/outlines, white face and small feet marks. Absolutely NO new gradients, shading, gloss, blur, 3D lighting, texture or smoothing inside the character. Retain the exact flat 2D illustration style, pose and proportions. Remove screenshot border. Subject centered, small transparent margins, complete body, genuinely transparent PNG."
+    },
+    {
+      "path": "extension/icons/mascots/sketched-penguin.png",
+      "prompt": "Use case: background-extraction. Edit target: supplied image sketched-penguin. Produce one clean transparent PNG cutout for a small browser sidebar mascot. Remove only the outer white/cream/gray rectangular background and any screenshot border. Preserve the complete original subject, pose, colors, hand drawn texture, contours, face and white interior areas; do not redraw or change the character. Keep the subject large and centered with a narrow transparent margin.   Actual alpha transparency, not a checkerboard illustration. No extra decorations or new text."
+    },
+    {
+      "path": "extension/icons/mascots/penguin-pair.png",
+      "prompt": "Use case: background-extraction. Edit target: supplied image penguin-pair. Produce one clean transparent PNG cutout for a small browser sidebar mascot. Remove only the outer white/cream/gray rectangular background and any screenshot border. Preserve the complete original subject, pose, colors, hand drawn texture, contours, face and white interior areas; do not redraw or change the character. Keep the subject large and centered with a narrow transparent margin. Preserve the small original signature beneath the two penguins.  Actual alpha transparency, not a checkerboard illustration. No extra decorations or new text."
+    },
+    {
+      "path": "extension/icons/mascots/black-cat.png",
+      "prompt": "Use case: background-extraction. Edit target: supplied image black-cat. Produce one clean transparent PNG cutout for a small browser sidebar mascot. Remove only the outer white/cream/gray rectangular background and any screenshot border. Preserve the complete original subject, pose, colors, hand drawn texture, contours, face and white interior areas; do not redraw or change the character. Keep the subject large and centered with a narrow transparent margin.  The loading spinner on the cat's forehead is part of the supplied artwork: preserve it. Actual alpha transparency, not a checkerboard illustration. No extra decorations or new text."
+    }
+  ]
+}

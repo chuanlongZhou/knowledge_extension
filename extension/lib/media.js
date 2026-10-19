@@ -1,3 +1,4 @@
+import { t, msg } from './i18n.js';
 import { el, button, assetView } from './dom.js';
 import { ensureMicrophonePermission } from './microphone.js';
 import { loadAsset } from './assets.js';
@@ -9,7 +10,7 @@ export function mediaComposer(db, textarea, { attachments = [], onChange = async
     status = el(
       'small',
       { class: 'muted' },
-      '可在正文中 Ctrl+V 粘贴图片。录音与图片会写入 Markdown。',
+      t('可在正文中 Ctrl+V 粘贴图片。录音与图片会写入 Markdown。'),
     );
   let recorder,
     stream,
@@ -19,7 +20,8 @@ export function mediaComposer(db, textarea, { attachments = [], onChange = async
     monotonicStart,
     pending = Promise.resolve(),
     active = false,
-    destroyed = false;
+    destroyed = false,
+    imports = Promise.resolve();
   const permissionController = new AbortController();
   const local = async (descriptor) => (await db.getAsset(descriptor.id))?.blob;
   function changed() {
@@ -35,7 +37,7 @@ export function mediaComposer(db, textarea, { attachments = [], onChange = async
           { class: 'media-item' },
           assetView(descriptor, { local, load: (a) => loadAsset(db, a) }),
           button(
-            '移除附件',
+            t('移除附件'),
             async () => {
               descriptors.delete(descriptor.id);
               textarea.value = textarea.value.replace(
@@ -61,12 +63,25 @@ export function mediaComposer(db, textarea, { attachments = [], onChange = async
     render();
     await changed();
   }
-  async function addFiles(files) {
-    for (const file of files) {
-      const descriptor = await db.storeAsset(file, file.name || `粘贴图片-${Date.now()}.png`);
-      await insert(descriptor);
-    }
-    status.textContent = '附件已保存在本机；保存记录后等待手动同步。';
+  function addFiles(files) {
+    const selected = [...files];
+    status.textContent = t('正在保存图片原文件…');
+    imports = imports
+      .catch(() => {})
+      .then(async () => {
+        for (const file of selected) {
+          if (destroyed) throw new Error(t('收集窗口已关闭。'));
+          const descriptor = await db.storeAsset(
+            file,
+            file.name || msg`粘贴图片-${Date.now()}.png`,
+          );
+          if (destroyed) throw new Error(t('收集窗口已关闭。'));
+          await insert(descriptor);
+        }
+        status.className = 'muted';
+        status.textContent = t('附件已保存在本机；保存记录后等待手动同步。');
+      });
+    return imports;
   }
   function guarded(fn) {
     return async () => {
@@ -108,7 +123,7 @@ export function mediaComposer(db, textarea, { attachments = [], onChange = async
   };
   textarea.addEventListener('paste', onPaste);
   const recordButton = button(
-    '开始录音',
+    t('开始录音'),
     guarded(async () => {
       if (active) {
         recorder.stop();
@@ -117,23 +132,23 @@ export function mediaComposer(db, textarea, { attachments = [], onChange = async
       }
       recordButton.disabled = true;
       status.className = 'muted';
-      status.textContent = '正在检查麦克风权限…';
+      status.textContent = t('正在检查麦克风权限…');
       await ensureMicrophonePermission({
         signal: permissionController.signal,
         onStatus: (message) => (status.textContent = message),
       });
-      if (destroyed) throw new Error('录音窗口已关闭。');
+      if (destroyed) throw new Error(t('录音窗口已关闭。'));
       if (!navigator.mediaDevices?.getUserMedia)
-        throw new Error('浏览器无法使用麦克风，请在完整整理页录音。');
+        throw new Error(t('浏览器无法使用麦克风，请在完整整理页录音。'));
       try {
         stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       } catch (e) {
         throw new Error(
           e.name === 'NotAllowedError'
-            ? '麦克风权限被阻止，请点击“麦克风设置”打开授权页，并允许浏览器使用麦克风。'
+            ? t('麦克风权限被阻止，请点击“麦克风设置”打开授权页，并允许浏览器使用麦克风。')
             : e.name === 'NotFoundError'
-              ? '没有找到麦克风，请连接设备后重试。'
-              : '无法打开麦克风，请检查设备是否可用。',
+              ? t('没有找到麦克风，请连接设备后重试。')
+              : t('无法打开麦克风，请检查设备是否可用。'),
         );
       }
       const mimeType = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find((type) =>
@@ -147,9 +162,9 @@ export function mediaComposer(db, textarea, { attachments = [], onChange = async
       recordingId = session.id;
       startAt = Date.now();
       active = true;
-      recordButton.textContent = '停止录音';
+      recordButton.textContent = t('停止录音');
       status.className = 'recording-status';
-      status.textContent = '● 正在录音 00:00';
+      status.textContent = t('● 正在录音 00:00');
       monotonicStart = performance.now();
       recorder.ondataavailable = (event) => {
         if (!event.data.size) return;
@@ -170,7 +185,7 @@ export function mediaComposer(db, textarea, { attachments = [], onChange = async
         stream.getTracks().forEach((track) => track.stop());
         active = false;
         status.className = 'muted';
-        status.textContent = '正在保存录音…';
+        status.textContent = t('正在保存录音…');
         try {
           await pending;
           if (destroyed) return;
@@ -178,21 +193,21 @@ export function mediaComposer(db, textarea, { attachments = [], onChange = async
           await insert(descriptor);
           if (destroyed) return;
           await db.removeRecording(recordingId);
-          status.textContent = '录音已保存为附件；点击保存记录即可。';
+          status.textContent = t('录音已保存为附件；点击保存记录即可。');
         } catch (e) {
-          status.textContent = `${e.message} 已保存片段可在设置中恢复。`;
+          status.textContent = msg`${e.message} 已保存片段可在设置中恢复。`;
         } finally {
-          recordButton.textContent = '开始录音';
+          recordButton.textContent = t('开始录音');
           recordButton.disabled = false;
         }
       };
       recorder.onerror = () => {
-        status.textContent = '录音被中断，已保存片段可以从设置中恢复。';
+        status.textContent = t('录音被中断，已保存片段可以从设置中恢复。');
         if (recorder.state === 'recording') recorder.stop();
       };
       timer = setInterval(() => {
         const seconds = Math.floor((Date.now() - startAt) / 1000);
-        status.textContent = `● 正在录音 ${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')} · 每秒保存片段到本机`;
+        status.textContent = msg`● 正在录音 ${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')} · 每秒保存片段到本机`;
       }, 1000);
       recorder.start(1000);
       recordButton.disabled = false;
@@ -201,11 +216,11 @@ export function mediaComposer(db, textarea, { attachments = [], onChange = async
   );
   toolbar.append(
     button(
-      '麦克风设置',
+      t('麦克风设置'),
       () => chrome.tabs.create({ url: chrome.runtime.getURL('microphone.html') }),
       'link-button',
     ),
-    button('添加图片', () => imageInput.click(), 'button small'),
+    button(t('添加图片'), () => imageInput.click(), 'button small'),
     recordButton,
     imageInput,
   );
@@ -218,6 +233,13 @@ export function mediaComposer(db, textarea, { attachments = [], onChange = async
     },
     get recording() {
       return active || recordButton.disabled;
+    },
+    async settle() {
+      let pending;
+      do {
+        pending = imports;
+        await pending;
+      } while (pending !== imports);
     },
     setAttachments(values) {
       descriptors.clear();

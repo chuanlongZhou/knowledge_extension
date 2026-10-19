@@ -16,6 +16,25 @@ import {
   validId,
 } from './model.js';
 import { validateProjects } from './projects.js';
+import {
+  TAG_LIBRARY_ID,
+  TAG_GROUPS,
+  TAG_STYLES,
+  TAG_REVISION,
+  tagLibraryFromState,
+  normalizeTagLibrary,
+  prepareTagLibrary,
+  writeTagLibrary,
+} from './tag-library.js';
+import {
+  SHORTCUT_LIBRARY_ID,
+  SHORTCUTS_KEY,
+  SHORTCUT_REVISION,
+  shortcutLibraryFromState,
+  normalizeShortcutLibrary,
+  prepareShortcutLibrary,
+  writeShortcutLibrary,
+} from './shortcut-library.js';
 
 const request = (req) =>
   new Promise((resolve, reject) => {
@@ -51,8 +70,8 @@ export class Database {
     if (!this.promise) {
       const opening = new Promise((resolve, reject) => {
         let settled = false;
-        const req = indexedDB.open(this.name, 4);
-        req.onupgradeneeded = () => {
+        const req = indexedDB.open(this.name, 5);
+        req.onupgradeneeded = (event) => {
           const db = req.result;
           if (!db.objectStoreNames.contains('records')) {
             db.createObjectStore('records', { keyPath: 'id' });
@@ -74,6 +93,10 @@ export class Database {
             db.createObjectStore('recordings', { keyPath: 'id' });
           if (!db.objectStoreNames.contains('recordingChunks'))
             db.createObjectStore('recordingChunks', { keyPath: 'key' });
+          if (!db.objectStoreNames.contains('driveCache'))
+            db.createObjectStore('driveCache', { keyPath: 'id' });
+          // Adding a disposable cache must not rewrite existing records or synchronization baselines.
+          if (event.oldVersion >= 4) return;
           const cursorReq = req.transaction.objectStore('records').openCursor();
           cursorReq.onsuccess = () => {
             const cursor = cursorReq.result;
@@ -130,8 +153,6 @@ export class Database {
   changed(kind = 'records', detail) {
     this.channel?.postMessage({ kind, detail });
     this.listeners.forEach((fn) => fn(kind, detail));
-    if (kind === 'records' && globalThis.chrome?.runtime?.sendMessage)
-      chrome.runtime.sendMessage({ type: 'companion-queue' }).catch(() => {});
   }
   async close() {
     try {
@@ -156,6 +177,20 @@ export class Database {
     const tx = db.transaction('state', 'readwrite');
     const done = completed(tx);
     tx.objectStore('state').put({ key, value });
+    if ([TAG_GROUPS, TAG_STYLES].includes(key)) {
+      const revision = tx.objectStore('state').get(TAG_REVISION);
+      revision.onsuccess = () =>
+        tx
+          .objectStore('state')
+          .put({ key: TAG_REVISION, value: (revision.result?.value || 0) + 1 });
+    }
+    if (key === SHORTCUTS_KEY) {
+      const revision = tx.objectStore('state').get(SHORTCUT_REVISION);
+      revision.onsuccess = () =>
+        tx
+          .objectStore('state')
+          .put({ key: SHORTCUT_REVISION, value: (revision.result?.value || 0) + 1 });
+    }
     await done;
     this.changed(
       key.startsWith('draft:') ? 'draft' : key.startsWith('companion:') ? 'companion' : 'state',
@@ -170,6 +205,115 @@ export class Database {
         .getAll(IDBKeyRange.bound('companion:row:', 'companion:row:\uffff')),
     );
     return new Map(rows.map((r) => [r.key.slice('companion:row:'.length), r.value]));
+  }
+  async driveLinks() {
+    const db = await this.open();
+    const rows = await request(
+      db
+        .transaction('state')
+        .objectStore('state')
+        .getAll(IDBKeyRange.bound('drive:row:', 'drive:row:\uffff')),
+    );
+    return new Map(rows.map((r) => [r.key.slice('drive:row:'.length), r.value]));
+  }
+  async cachedDriveFile(id) {
+    const db = await this.open();
+    return (
+      (await request(db.transaction('driveCache').objectStore('driveCache').get(id)))?.value ?? null
+    );
+  }
+  async cacheDriveFile(id, value) {
+    const db = await this.open(),
+      tx = db.transaction('driveCache', 'readwrite'),
+      done = completed(tx);
+    tx.objectStore('driveCache').put({ id, value });
+    await done;
+  }
+  async pruneDriveCache(fileIds) {
+    const ids = new Set(fileIds),
+      db = await this.open(),
+      tx = db.transaction('driveCache', 'readwrite'),
+      done = completed(tx);
+    const cursor = tx.objectStore('driveCache').openCursor();
+    cursor.onsuccess = () => {
+      const row = cursor.result;
+      if (!row) return;
+      if (!ids.has(row.key)) row.delete();
+      row.continue();
+    };
+    await done;
+  }
+  async acknowledgeDrive(id, link) {
+    return this.acknowledgeCompanion(id, link, 'drive');
+  }
+  async applyDriveChanges(changes, links, conflicts) {
+    return this.applyCompanionChanges(changes, links, null, conflicts, [], 'drive');
+  }
+  async tagLibrary() {
+    const db = await this.open(),
+      store = db.transaction('state').objectStore('state');
+    const [groups, styles, revision] = await Promise.all(
+      [TAG_GROUPS, TAG_STYLES, TAG_REVISION].map((key) => request(store.get(key))),
+    );
+    return {
+      ...(await prepareTagLibrary(tagLibraryFromState(groups?.value, styles?.value))),
+      rev: revision?.value || 0,
+    };
+  }
+  async shortcutLibrary() {
+    const db = await this.open(),
+      store = db.transaction('state').objectStore('state');
+    const [shortcuts, revision] = await Promise.all(
+      [SHORTCUTS_KEY, SHORTCUT_REVISION].map((key) => request(store.get(key))),
+    );
+    return {
+      ...(await prepareShortcutLibrary(shortcutLibraryFromState(shortcuts?.value))),
+      rev: revision?.value || 0,
+    };
+  }
+  async setShortcutLibrary(shortcuts, expectedRev) {
+    const record = shortcutLibraryFromState(shortcuts);
+    const db = await this.open(),
+      tx = db.transaction('state', 'readwrite'),
+      done = completed(tx);
+    let error;
+    const revision = tx.objectStore('state').get(SHORTCUT_REVISION);
+    revision.onsuccess = () => {
+      const current = revision.result?.value || 0;
+      if (current !== expectedRev) {
+        error = new StaleEditError();
+        tx.abort();
+        return;
+      }
+      writeShortcutLibrary(tx.objectStore('state'), record, current + 1);
+    };
+    try {
+      await done;
+    } catch (cause) {
+      throw error || cause;
+    }
+    this.changed('state');
+  }
+  async syncRow(id) {
+    if (id === SHORTCUT_LIBRARY_ID) {
+      const row = await this.shortcutLibrary();
+      return row.record.shortcuts.length || row.rev || (await this.getState(`drive:row:${id}`))
+        ? row
+        : null;
+    }
+    if (id !== TAG_LIBRARY_ID) return this.get(id);
+    const row = await this.tagLibrary();
+    return row.record.definitions.length || row.rev || (await this.getState(`drive:row:${id}`))
+      ? row
+      : null;
+  }
+  async syncRows() {
+    const rows = await this.allRows(),
+      [tags, shortcuts] = await Promise.all([
+        this.syncRow(TAG_LIBRARY_ID),
+        this.syncRow(SHORTCUT_LIBRARY_ID),
+      ]);
+    return [...rows, ...[tags, shortcuts].filter(Boolean)];
   }
   async allCatalog() {
     const db = await this.open();
@@ -416,7 +560,7 @@ export class Database {
     this.changed();
     return saved;
   }
-  async renameTag(from, to, color) {
+  async renameTag(from, to, color, description) {
     to = to.trim();
     if (!to || to.length > 100 || /[,，\n]/.test(to))
       throw new Error('标签名称需为 1–100 个字，不能包含逗号或换行。');
@@ -475,10 +619,32 @@ export class Database {
         }
         const groups = states.result.find((s) => s.key === 'ui:tag-groups')?.value || [];
         const styles = states.result.find((s) => s.key === 'ui:tag-styles')?.value || {};
+        const previous = styles[from] || {};
         if (from !== to) delete styles[from];
-        styles[to] = { color };
+        Object.defineProperty(styles, to, {
+          value: {
+            color,
+            ...(description !== undefined || previous.description !== undefined
+              ? { description: description ?? previous.description }
+              : {}),
+          },
+          enumerable: true,
+          configurable: true,
+          writable: true,
+        });
+        try {
+          tagLibraryFromState(rename([...groups, from]), styles);
+        } catch (e) {
+          error = e;
+          tx.abort();
+          return;
+        }
         tx.objectStore('state').put({ key: 'ui:tag-groups', value: rename([...groups, from]) });
         tx.objectStore('state').put({ key: 'ui:tag-styles', value: styles });
+        tx.objectStore('state').put({
+          key: TAG_REVISION,
+          value: (states.result.find((s) => s.key === TAG_REVISION)?.value || 0) + 1,
+        });
       };
     };
     try {
@@ -569,10 +735,12 @@ export class Database {
     query = '',
     tag = '',
     project = '',
+    projectMembership = '',
     keywordProject = null,
     ids = null,
     pendingIds = null,
     pinnedIds = [],
+    orderedIds = null,
     type = '',
     limit = 60,
     offset = 0,
@@ -585,20 +753,33 @@ export class Database {
         view,
         tag,
         project,
+        projectMembership,
         keywordProject,
         ids: matches,
         pendingIds,
         pinnedIds,
+        orderedIds,
         type,
         limit,
         offset,
       });
     }
+    const filterMembership =
+      view === 'organized' && ['in-project', 'no-project'].includes(projectMembership);
+    const activeProjectIds = filterMembership
+      ? new Set(
+          (await this.allCatalog())
+            .filter((m) => m.type === 'project' && !m.deleted_at)
+            .map((m) => m.id),
+        )
+      : null;
     const db = await this.open();
     const tx = db.transaction(['catalog', 'search', 'records']);
     const result = [];
     let matched = 0;
-    const priority = [...new Set(view === 'trash' ? [] : [LIST_ID, ...pinnedIds])];
+    const priority = [
+      ...new Set([...(view === 'trash' ? [] : [LIST_ID, ...pinnedIds]), ...(orderedIds || [])]),
+    ];
     const prioritized = new Set(priority);
     return new Promise((resolve, reject) => {
       tx.onabort = () => reject(tx.error);
@@ -616,6 +797,9 @@ export class Database {
           (tag && !(m.tags || []).includes(tag)) ||
           (view === 'favorites' && !m.favorite) ||
           (project && !(m.project_ids || []).includes(project)) ||
+          (filterMembership &&
+            (m.project_ids || []).some((id) => activeProjectIds.has(id)) !==
+              (projectMembership === 'in-project')) ||
           (type && m.type !== type)
         ) {
           next();
@@ -667,7 +851,7 @@ export class Database {
       };
       const readPriority = () => {
         if (result.length > limit) return finish();
-        if (!priority.length) return scan();
+        if (!priority.length) return orderedIds ? finish() : scan();
         const req = tx.objectStore('catalog').get(priority.shift());
         req.onerror = () => reject(req.error);
         req.onsuccess = () => {
@@ -850,29 +1034,66 @@ export class Database {
       }
     };
   }
-  async acknowledgeCompanion(id, link) {
+  async acknowledgeCompanion(id, link, namespace = 'companion') {
     const db = await this.open();
     const tx = db.transaction(['records', 'catalog', 'search', 'state'], 'readwrite');
     const done = completed(tx);
-    tx.objectStore('state').put({ key: `companion:row:${id}`, value: link });
+    tx.objectStore('state').put({ key: `${namespace}:row:${id}`, value: link });
     const req = tx.objectStore('records').get(id);
     req.onsuccess = () => {
       if (req.result) this.putRow(tx, { ...req.result, dirty: req.result.hash !== link.hash });
     };
     await done;
   }
-  async applyCompanionChanges(changes, links, cursor, conflicts, deferred = []) {
+  async applyCompanionChanges(
+    changes,
+    links,
+    cursor,
+    conflicts,
+    deferred = [],
+    namespace = 'companion',
+  ) {
     const changedIds = new Set(changes.map((change) => change.record.id));
     const prepared = await Promise.all(
-      changes.map(async (change) => ({
-        ...change,
-        prepared: await this.prepare(change.record),
-      })),
+      changes
+        .filter((change) => ![TAG_LIBRARY_ID, SHORTCUT_LIBRARY_ID].includes(change.record.id))
+        .map(async (change) => ({
+          ...change,
+          prepared: await this.prepare(change.record),
+        })),
     );
     const db = await this.open();
     const tx = db.transaction(['records', 'catalog', 'search', 'state', 'assets'], 'readwrite');
     const done = completed(tx);
     let error;
+    const tagChange = changes.find((change) => change.record.id === TAG_LIBRARY_ID);
+    if (tagChange) {
+      const record = normalizeTagLibrary(tagChange.record);
+      const revision = tx.objectStore('state').get(TAG_REVISION);
+      revision.onsuccess = () => {
+        const current = revision.result?.value || 0;
+        if (current !== tagChange.expectedRev) {
+          error = new StaleEditError();
+          tx.abort();
+          return;
+        }
+        writeTagLibrary(tx.objectStore('state'), record, current + 1);
+      };
+    }
+    const shortcutChange = changes.find((change) => change.record.id === SHORTCUT_LIBRARY_ID);
+    if (shortcutChange) {
+      const record = normalizeShortcutLibrary(shortcutChange.record);
+      const revision = tx.objectStore('state').get(SHORTCUT_REVISION);
+      revision.onsuccess = () => {
+        const current = revision.result?.value || 0;
+        if (current !== shortcutChange.expectedRev) {
+          error = new StaleEditError();
+          tx.abort();
+          return;
+        }
+        writeShortcutLibrary(tx.objectStore('state'), record, current + 1);
+      };
+    }
     for (const change of prepared) {
       const req = tx.objectStore('records').get(change.record.id);
       req.onsuccess = () => {
@@ -891,7 +1112,7 @@ export class Database {
       };
     }
     for (const [id, link] of links) {
-      tx.objectStore('state').put({ key: `companion:row:${id}`, value: link });
+      tx.objectStore('state').put({ key: `${namespace}:row:${id}`, value: link });
       if (!changedIds.has(id)) {
         const req = tx.objectStore('records').get(id);
         req.onsuccess = () => {
@@ -899,11 +1120,11 @@ export class Database {
         };
       }
     }
-    tx.objectStore('state').put({ key: 'companion:cursor', value: cursor });
-    tx.objectStore('state').put({ key: 'companion:conflicts', value: conflicts });
-    tx.objectStore('state').put({ key: 'companion:deferred', value: deferred });
+    tx.objectStore('state').put({ key: `${namespace}:cursor`, value: cursor });
+    tx.objectStore('state').put({ key: `${namespace}:conflicts`, value: conflicts });
+    tx.objectStore('state').put({ key: `${namespace}:deferred`, value: deferred });
     // Read validation after all queued record writes, in this same transaction.
-    const barrier = tx.objectStore('state').get('companion:cursor');
+    const barrier = tx.objectStore('state').get(`${namespace}:cursor`);
     barrier.onsuccess = () =>
       this.guardProjects(tx, (e) => {
         error = e;
@@ -913,14 +1134,16 @@ export class Database {
     } catch (e) {
       throw error || e;
     }
-    if (changes.length) this.changed('companion-result');
+    this.changed(`${namespace}-result`);
   }
   async exportData() {
-    const [rows, captures, drafts, assets] = await Promise.all([
+    const [rows, captures, drafts, assets, tags, shortcuts] = await Promise.all([
       this.allRows(),
       this.captures(),
       this.drafts(),
       this.allAssets(),
+      this.tagLibrary(),
+      this.shortcutLibrary(),
     ]);
     return {
       format: 'pkm-nexus-backup',
@@ -930,6 +1153,8 @@ export class Database {
       pending_captures: captures.map((c) => ({ record: c.record })),
       drafts,
       asset_catalog: assets.map((a) => a.descriptor),
+      tag_library: tags.record,
+      shortcut_library: shortcuts.record,
     };
   }
   async previewImport(data) {
@@ -939,7 +1164,7 @@ export class Database {
       !Array.isArray(data.records) ||
       data.records.length > 100_000
     )
-      throw new Error('请选择 PKM-Nexus JSON 或完整 ZIP 备份。');
+      throw new Error('请选择 GUGA Knowledge JSON 或完整 ZIP 备份。');
     const ids = new Set(),
       entries = [];
     for (const item of data.records) {
@@ -1074,7 +1299,11 @@ export class Database {
         key = `${key.replace(/:(?:archive|backup)-[a-zA-Z0-9_-]+$/, '')}:backup-${(await digest(value)).slice(0, 12)}`;
       drafts.push({ key, value });
     }
-    return { entries, captures, drafts };
+    const tagLibrary =
+      data.tag_library === undefined ? null : normalizeTagLibrary(data.tag_library);
+    const shortcutLibrary =
+      data.shortcut_library === undefined ? null : normalizeShortcutLibrary(data.shortcut_library);
+    return { entries, captures, drafts, tagLibrary, shortcutLibrary };
   }
   async applyImport(plan, overwrite = false) {
     const selected = plan.entries.filter(
@@ -1090,6 +1319,46 @@ export class Database {
     );
     const done = completed(tx);
     let error;
+    if (plan.tagLibrary) {
+      const keys = [TAG_GROUPS, TAG_STYLES, TAG_REVISION];
+      const values = {};
+      for (const key of keys) {
+        const req = tx.objectStore('state').get(key);
+        req.onsuccess = () => {
+          values[key] = req.result?.value;
+          if (key !== TAG_REVISION) return;
+          const local = tagLibraryFromState(values[TAG_GROUPS], values[TAG_STYLES]);
+          const definitions = new Map(local.definitions.map((item) => [item.name, item]));
+          for (const item of normalizeTagLibrary(plan.tagLibrary).definitions)
+            if (overwrite || !definitions.has(item.name)) definitions.set(item.name, item);
+          writeTagLibrary(
+            tx.objectStore('state'),
+            { ...local, definitions: [...definitions.values()] },
+            (values[TAG_REVISION] || 0) + 1,
+          );
+        };
+      }
+    }
+    if (plan.shortcutLibrary) {
+      const shortcuts = normalizeShortcutLibrary(plan.shortcutLibrary).shortcuts;
+      const existing = tx.objectStore('state').get(SHORTCUTS_KEY);
+      existing.onsuccess = () => {
+        const current = shortcutLibraryFromState(existing.result?.value).shortcuts;
+        const merged = overwrite
+          ? shortcuts
+          : [
+              ...current,
+              ...shortcuts.filter((item) => !current.some((old) => old.id === item.id)),
+            ].slice(0, 12);
+        const revision = tx.objectStore('state').get(SHORTCUT_REVISION);
+        revision.onsuccess = () =>
+          writeShortcutLibrary(
+            tx.objectStore('state'),
+            shortcutLibraryFromState(merged),
+            (revision.result?.value || 0) + 1,
+          );
+      };
+    }
     let remaining = rows.length;
     for (const { item, prepared } of rows) {
       const req = tx.objectStore('records').get(item.record.id);

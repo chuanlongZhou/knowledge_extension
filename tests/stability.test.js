@@ -57,7 +57,7 @@ test('blocked IndexedDB opening can retry after an old connection closes', async
   const db = database(t, name);
   await assert.rejects(db.open(), /关闭旧版本/);
   old.close();
-  assert.equal((await db.open()).version, 4);
+  assert.equal((await db.open()).version, 5);
   assert.deepEqual(await db.allRows(), []);
 });
 test('pending view includes deleted records and tombstones until synchronization', async (t) => {

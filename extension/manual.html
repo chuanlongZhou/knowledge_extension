@@ -3,32 +3,53 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>PKM Nexus · 使用说明书</title>
+    <title data-i18n="GUGA Knowledge · 使用说明书">GUGA Knowledge · 使用说明书</title>
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="manual.css" />
     <link rel="stylesheet" href="theme.css" />
   </head>
   <body>
     <header class="guide-header">
-      <a href="dashboard.html">← 返回整理页</a>
-      <strong>PKM Nexus · 使用说明书</strong>
-      <button id="print-guide" class="button">打印 / 保存 PDF</button>
+      <a href="dashboard.html" data-i18n="← 返回整理页"
+        ><span data-i18n="← 返回整理页">← 返回整理页</span></a
+      >
+      <strong data-i18n="GUGA Knowledge · 使用说明书"
+        ><span data-i18n="GUGA Knowledge · 使用说明书">GUGA Knowledge · 使用说明书</span></strong
+      >
+      <button id="print-guide" class="button" data-i18n="打印 / 保存 PDF">打印 / 保存 PDF</button>
     </header>
     <div class="guide-shell">
       <aside class="guide-sidebar">
-        <nav aria-label="帮助文档">
-          <button id="read-manual" class="nav-item active">使用说明书</button>
-          <button id="read-tests" class="nav-item">可重复测试流程</button>
+        <nav aria-label="帮助文档" data-i18n-aria-label="帮助文档">
+          <button id="read-manual" class="nav-item active" data-i18n="使用说明书">
+            使用说明书
+          </button>
+          <button id="read-tests" class="nav-item" data-i18n="可重复测试流程">
+            可重复测试流程
+          </button>
         </nav>
         <label class="field"
-          ><span class="field-label">查找章节</span
-          ><input id="guide-search" type="search" placeholder="如：录音、网页组、同步"
+          ><span class="field-label"><span data-i18n="查找章节">查找章节</span></span
+          ><input
+            id="guide-search"
+            type="search"
+            placeholder="如：录音、网页组、同步"
+            data-i18n-placeholder="如：录音、网页组、同步"
         /></label>
-        <nav id="guide-toc" aria-label="章节目录"></nav>
-        <a id="guide-source" download>下载 Markdown 原文</a>
+        <nav id="guide-toc" aria-label="章节目录" data-i18n-aria-label="章节目录"></nav>
+        <a id="guide-source" download data-i18n="下载 Markdown 原文"
+          ><span data-i18n="下载 Markdown 原文">下载 Markdown 原文</span></a
+        >
       </aside>
-      <main id="guide-content" class="guide-content" aria-live="polite">正在加载本地说明书…</main>
+      <main
+        id="guide-content"
+        class="guide-content"
+        aria-live="polite"
+        data-i18n="正在加载本地说明书…"
+      >
+        正在加载本地说明书…
+      </main>
     </div>
-    <script type="module" src="manual.js"></script>
+    <script type="module" src="page.js?entry=manual"></script>
   </body>
 </html>

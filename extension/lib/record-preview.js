@@ -1,30 +1,40 @@
+import { t, msg } from './i18n.js';
 import { el, button, markdownPreview, assetView } from './dom.js';
 import { loadAsset } from './assets.js';
 import { websiteLink } from './websites.js';
 import { icon } from './icons.js';
 import { tagBadge } from './appearance.js';
+import { enableWebsiteDrag, websiteDragHandle } from './website-drag.js';
 
-export async function recordPreview(db, record, { onChanged = () => {} } = {}) {
+export async function recordPreview(db, record, { onChanged = () => {}, onMoveWebsite } = {}) {
   const root = el('article', { class: 'record-preview', 'data-preview-id': record.id });
   const assets = {
     attachments: record.attachments || [],
     local: async (d) => (await db.getAsset(d.id))?.blob,
     load: (d) => loadAsset(db, d),
   };
-  root.append(el('h2', {}, record.type === 'list' ? 'Todo / Idea' : record.title || '未命名记录'));
+  root.append(
+    el('h2', {}, record.type === 'list' ? 'Todo / Idea' : record.title || t('未命名记录')),
+  );
   if (record.summary) root.append(el('p', { class: 'record-summary' }, record.summary));
   if (record.type === 'snapshot' && record.snapshot) {
     const descriptor = record.attachments.find((a) => a.id === record.snapshot.asset_id);
     if (descriptor) root.append(assetView(descriptor, assets));
   } else if (record.type === 'website_group') {
     for (const item of record.url_list) {
+      const link = websiteLink(item);
+      if (!record.deleted_at && !item.removed_at && onMoveWebsite)
+        enableWebsiteDrag(link, record.id, item);
       const line = el(
         'div',
         { class: `website-preview-line${item.removed_at ? ' removed' : ''}` },
-        websiteLink(item),
+        !record.deleted_at && !item.removed_at && onMoveWebsite
+          ? websiteDragHandle(record.id, item, onMoveWebsite)
+          : null,
+        link,
       );
       const remove = button(
-        item.removed_at ? '恢复网页' : icon('trash'),
+        item.removed_at ? t('恢复网页') : icon('trash'),
         async () => {
           try {
             await db.mutate(record.id, (r) => ({
@@ -40,11 +50,11 @@ export async function recordPreview(db, record, { onChanged = () => {} } = {}) {
             item.removed_at = item.removed_at ? null : new Date().toISOString();
             line.classList.toggle('removed', !!item.removed_at);
             remove.replaceChildren(
-              item.removed_at ? document.createTextNode('恢复网页') : icon('trash'),
+              item.removed_at ? document.createTextNode(t('恢复网页')) : icon('trash'),
             );
             remove.setAttribute(
               'aria-label',
-              `${item.removed_at ? '恢复' : '删除'}网页 ${item.title || item.url}`,
+              msg`${item.removed_at ? t('恢复') : t('删除')}网页 ${item.title || item.url}`,
             );
             onChanged();
           } catch (e) {
@@ -56,7 +66,7 @@ export async function recordPreview(db, record, { onChanged = () => {} } = {}) {
       const error = el('span', { class: 'error-text' });
       remove.setAttribute(
         'aria-label',
-        `${item.removed_at ? '恢复' : '删除'}网页 ${item.title || item.url}`,
+        msg`${item.removed_at ? t('恢复') : t('删除')}网页 ${item.title || item.url}`,
       );
       line.append(remove, error);
       root.append(line);
