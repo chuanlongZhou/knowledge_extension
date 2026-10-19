@@ -1,14 +1,15 @@
 {
-  "name": "pkm-nexus",
-  "version": "0.8.0",
+  "name": "guga-knowledge",
+  "version": "0.9.1",
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test tests/core.test.js tests/media.test.js tests/types.test.js tests/examples.test.js tests/collected.test.js tests/projects.test.js tests/stability.test.js tests/drive.test.js",
+    "test": "node --test tests/core.test.js tests/media.test.js tests/types.test.js tests/examples.test.js tests/collected.test.js tests/projects.test.js tests/stability.test.js tests/drive.test.js tests/mascot.test.js tests/backup-layout.test.js tests/start-and-order.test.js tests/i18n.test.js",
     "test:browser": "node tests/direct-drive-browser.mjs",
     "test:ui-browser": "node tests/ui-interactions-browser.mjs",
     "test:collection-browser": "node tests/collection-browser.mjs",
-    "build": "node scripts/build.mjs",
+    "build": "node scripts/build.mjs && node tests/store-package.mjs",
+    "test:package": "node tests/store-package.mjs",
     "prepare:extension": "node scripts/build.mjs",
     "lint": "eslint .",
     "format": "prettier --write .",
@@ -22,7 +23,12 @@
     "test:projects-browser": "node tests/projects-browser.mjs",
     "test:theme-browser": "node tests/theme-browser.mjs",
     "test:customization-browser": "node tests/ui-customization-browser.mjs",
-    "test:drive-browser": "node tests/direct-drive-browser.mjs"
+    "test:settings-browser": "node tests/settings-and-websites-browser.mjs",
+    "test:image-preview-browser": "node tests/image-preview-browser.mjs",
+    "test:drive-browser": "node tests/direct-drive-browser.mjs",
+    "test:export-browser": "node tests/export-layout-browser.mjs",
+    "test:start-browser": "node tests/start-page-browser.mjs",
+    "test:language-browser": "node tests/language-browser.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

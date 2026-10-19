@@ -1,0 +1,19 @@
+{
+  "version": "0.9.1",
+  "checks": [
+    "Four complete localized listings; short descriptions at most 132 characters",
+    "20 real screenshots at 1280×800, RGB 8-bit PNG",
+    "One global 440×280 small promo and 1400×560 marquee, RGB PNG",
+    "Current store icon is byte-identical to current extension icon",
+    "Original project penguin used unchanged, with source reference and editable layouts",
+    "No personal browser or Google account data used"
+  ],
+  "shortDescriptionLengths": {
+    "zh-CN": 57,
+    "en": 114,
+    "fr": 115,
+    "ja": 83
+  },
+  "captureErrors": [],
+  "zip": "dist/GUGA-Knowledge-store-assets-0.9.1.zip"
+}

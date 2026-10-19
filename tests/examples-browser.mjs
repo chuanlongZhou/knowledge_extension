@@ -122,10 +122,20 @@ try {
   pass('保存的示例可正常编辑，重复点击保存不会复制或覆盖用户修改');
   await region.getByRole('button', { name: '隐藏内置示例', exact: true }).click();
   await region.waitFor({ state: 'hidden' });
+  await page.locator('#examples-shortcut').waitFor({ state: 'hidden' });
   await page.reload();
   await region.waitFor({ state: 'hidden' });
+  await page.locator('#examples-shortcut').waitFor({ state: 'hidden' });
   await page.locator('#settings').click();
-  await page.getByRole('button', { name: '显示收件箱内置示例', exact: true }).click();
+  const hiddenSetting = page
+    .getByRole('dialog', { name: '设置与数据管理' })
+    .getByLabel('完全隐藏内置示例');
+  assert.equal(await hiddenSetting.isChecked(), true);
+  await hiddenSetting.uncheck();
+  await page
+    .getByRole('dialog', { name: '设置与数据管理' })
+    .getByRole('button', { name: '关闭' })
+    .click();
   await region.locator('.example-card').nth(5).waitFor();
   assert.equal((await rows()).records.length, 1);
   pass('隐藏状态跨刷新保留，设置页可恢复预览，个人记录不受影响');
@@ -140,7 +150,7 @@ try {
   assert.equal(await side.locator('.panel-start').count(), 0);
   assert.equal(
     await side.locator('#extension-version').innerText(),
-    `PKM Nexus v${await side.evaluate(() => chrome.runtime.getManifest().version)}`,
+    `GUGA Knowledge v${await side.evaluate(() => chrome.runtime.getManifest().version)}`,
   );
   await side.screenshot({ path: path.join(output, 'builtin-examples-sidepanel-entry.png') });
   await shortcut.click();
@@ -156,11 +166,22 @@ try {
   pass('已有个人记录时示例默认展开，360px 侧栏底部入口可一键到达，版本可见');
   await side.getByRole('button', { name: '隐藏内置示例', exact: true }).click();
   await side.locator('#builtin-examples').waitFor({ state: 'hidden' });
+  await side.locator('#examples-shortcut').waitFor({ state: 'hidden' });
   await side.reload();
-  await side.getByRole('button', { name: '查看 6 条内置示例', exact: true }).click();
+  await side.locator('#examples-shortcut').waitFor({ state: 'hidden' });
+  const openedSettings = context.waitForEvent('page');
+  await side.getByRole('button', { name: '打开设置', exact: true }).click();
+  const settingsPage = await openedSettings;
+  const sideSetting = settingsPage
+    .getByRole('dialog', { name: '设置与数据管理' })
+    .getByLabel('完全隐藏内置示例');
+  assert.equal(await sideSetting.isChecked(), true);
+  await sideSetting.uncheck();
+  await side.locator('#examples-shortcut').waitFor({ state: 'visible' });
+  await settingsPage.close();
   await side.locator('#builtin-examples .example-card').nth(5).waitFor();
   assert.equal((await rows()).records.length, 1);
-  pass('曾隐藏示例的已有用户可直接从侧栏底部恢复，无需先进入设置');
+  pass('设置可跨整理页和侧栏彻底隐藏或恢复样例及入口，个人记录仍保留');
   await side.getByRole('button', { name: '全部加入我的收件箱', exact: true }).click();
   await side.waitForFunction(() => document.querySelectorAll('#records article').length === 6);
   current = await rows();

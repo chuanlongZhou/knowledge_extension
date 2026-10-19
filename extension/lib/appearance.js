@@ -1,3 +1,4 @@
+import { t, msg } from './i18n.js';
 import { el, button } from './dom.js';
 
 export function colorControl(value, label) {
@@ -7,9 +8,9 @@ export function colorControl(value, label) {
     value,
     maxlength: 7,
     pattern: '#[0-9a-fA-F]{6}',
-    'aria-label': `${label}十六进制`,
+    'aria-label': msg`${label}十六进制`,
   });
-  const palette = el('div', { class: 'color-palette', 'aria-label': `${label}预设` });
+  const palette = el('div', { class: 'color-palette', 'aria-label': msg`${label}预设` });
   const set = (next) => {
     picker.value = next;
     hex.value = next;
@@ -61,7 +62,7 @@ export function tagBadge(tag, styles = {}) {
 }
 
 export function iconChoices(value = '📁') {
-  const root = el('div', { class: 'icon-choices', role: 'group', 'aria-label': '项目图标' });
+  const root = el('div', { class: 'icon-choices', role: 'group', 'aria-label': t('项目图标') });
   const icons = [
     ...new Set(['📁', '📚', '📝', '🔬', '💡', '🎯', '💼', '🏠', '🌱', '⭐', '🎨', '💻', value]),
   ];
@@ -73,7 +74,7 @@ export function iconChoices(value = '📁') {
   for (const symbol of icons) {
     const item = button(symbol, () => select(symbol), 'button icon-choice');
     item.dataset.icon = symbol;
-    item.setAttribute('aria-label', `图标 ${symbol}`);
+    item.setAttribute('aria-label', msg`图标 ${symbol}`);
     root.append(item);
   }
   select(value);

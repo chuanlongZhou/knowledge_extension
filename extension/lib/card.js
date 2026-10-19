@@ -1,10 +1,12 @@
+import { t, msg } from './i18n.js';
 import { el, button, dateLabel, assetView } from './dom.js';
 import { loadAsset } from './assets.js';
 import { icon } from './icons.js';
 import { websiteLink } from './websites.js';
+import { enableWebsiteDrag, websiteDragHandle } from './website-drag.js';
 export function typedCard(
   record,
-  { db, toggleList, toggleRead, toggleRemoved, listMode = true, onListMode } = {},
+  { db, toggleList, toggleRead, toggleRemoved, listMode = true, onListMode, moveWebsite } = {},
 ) {
   const root = el('div', { class: 'typed-preview' });
   root.addEventListener('click', (event) => {
@@ -56,11 +58,11 @@ export function typedCard(
                     ? el('input', {
                         type: 'checkbox',
                         checked: item.checked,
-                        'aria-label': `完成 ${item.text}`,
+                        'aria-label': msg`完成 ${item.text}`,
                         onchange: stop((event) => toggleList(item.id, event.target.checked)),
                       })
                     : el('span', {}, '•'),
-                  el('span', {}, item.text || '空项目'),
+                  el('span', {}, item.text || t('空项目')),
                 ),
           ),
       );
@@ -72,37 +74,51 @@ export function typedCard(
       el(
         'small',
         { class: 'muted' },
-        `${record.url_count || 0} 个网页 · ${record.unread_count || 0} 个未读`,
+        msg`${record.url_count || 0} 个网页 · ${record.unread_count || 0} 个未读`,
       ),
     );
-    for (const item of record.url_preview || [])
+    for (const item of record.url_preview || []) {
+      const link = websiteLink(item);
+      if (!record.deleted_at && !item.removed_at && moveWebsite)
+        enableWebsiteDrag(link, record.id, item);
       root.append(
         el(
           'div',
           {
             class: `website-preview-line${item.read_at ? ' completed' : ''}${item.removed_at ? ' removed' : ''}`,
+            'data-website-id': item.id,
           },
+          !record.deleted_at && !item.removed_at && moveWebsite
+            ? websiteDragHandle(record.id, item, moveWebsite)
+            : null,
           el('input', {
             type: 'checkbox',
             checked: !!item.read_at,
-            'aria-label': `已读 ${item.title || item.url}`,
+            'aria-label': msg`已读 ${item.title || item.url}`,
             onclick: (event) => event.stopPropagation(),
             onchange: stop((event) => toggleRead(item.id, event.target.checked)),
           }),
-          websiteLink(item),
+          link,
           el(
             'button',
             {
               type: 'button',
               class: 'icon-button',
-              'aria-label': `${item.removed_at ? '恢复' : '删除'}网页 ${item.title || item.url}`,
+              'aria-label': msg`${item.removed_at ? t('恢复') : t('删除')}网页 ${item.title || item.url}`,
               onclick: stop(() => toggleRemoved?.(item.id, !item.removed_at)),
             },
-            item.removed_at ? '恢复' : icon('trash'),
+            item.removed_at ? t('恢复') : icon('trash'),
           ),
         ),
       );
-    root.append(el('small', { class: 'drop-hint' }, '多选网页归组，保存成功后再关闭'));
+    }
+    root.append(
+      el(
+        'small',
+        { class: 'drop-hint' },
+        t('拖动网页或 ⠿ 移动单项；拖动标题、空白处或“整组”移动整条记录。'),
+      ),
+    );
   } else if (record.type === 'snapshot') {
     const descriptor = record.attachments?.find((a) => a.id === record.snapshot?.asset_id);
     if (descriptor && db)
@@ -121,11 +137,11 @@ export function typedCard(
           el(
             'div',
             {},
-            el('strong', {}, record.snapshot?.format === 'png' ? '页面截图' : '旧版网页文件'),
+            el('strong', {}, record.snapshot?.format === 'png' ? t('页面截图') : t('旧版网页文件')),
             el(
               'small',
               { class: 'muted' },
-              record.snapshot ? dateLabel(record.snapshot.captured_at) : '尚未捕获',
+              record.snapshot ? dateLabel(record.snapshot.captured_at) : t('尚未捕获'),
             ),
           ),
         ),
@@ -135,7 +151,7 @@ export function typedCard(
       el(
         'small',
         { class: 'muted' },
-        `${record.attachments.filter((a) => a.kind === 'image').length} 张图片 · ${record.attachments.filter((a) => a.kind === 'audio').length} 段录音`,
+        msg`${record.attachments.filter((a) => a.kind === 'image').length} 张图片 · ${record.attachments.filter((a) => a.kind === 'audio').length} 段录音`,
       ),
     );
   return root;

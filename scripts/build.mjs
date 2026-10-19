@@ -1,5 +1,6 @@
 import { cp, mkdir, readdir, readFile, writeFile, rm } from 'node:fs/promises';
 import { writeZip } from '../extension/lib/zip.js';
+import { APP_NAME, EXPORT_PREFIX } from '../extension/lib/brand.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -29,15 +30,20 @@ async function collect(dir) {
     if (item.isDirectory()) await collect(file);
     else
       files.set(
-        `pkm-nexus/${path.relative(destination, file).split(path.sep).join('/')}`,
+        path.relative(destination, file).split(path.sep).join('/'),
         new Uint8Array(await readFile(file)),
       );
   }
 }
 await collect(destination);
 const manifest = JSON.parse(await readFile(path.join(source, 'manifest.json'), 'utf8'));
-const archive = path.join(root, 'dist', `PKM-Nexus-${manifest.version}-direct-drive.zip`);
+// Chrome Web Store assigns the published extension ID and rejects a manifest key
+// in the uploaded ZIP. Keep the key in the unpacked development build only.
+const storeManifest = { ...manifest };
+delete storeManifest.key;
+files.set('manifest.json', new TextEncoder().encode(JSON.stringify(storeManifest, null, 2) + '\n'));
+const archive = path.join(root, 'dist', `${EXPORT_PREFIX}-${manifest.version}-direct-drive.zip`);
 await writeFile(archive, new Uint8Array(await (await writeZip(files)).arrayBuffer()));
 console.log(
-  `PKM Nexus ${manifest.version}: ${files.size} files.\nLoad unpacked: ${destination}\nZIP: ${archive}`,
+  `${APP_NAME} ${manifest.version}: ${files.size} files.\nLoad unpacked: ${destination}\nZIP: ${archive}`,
 );

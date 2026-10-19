@@ -22,7 +22,7 @@ export class MockDirectDrive {
       headers = new Headers(options.headers),
       method = options.method || 'GET';
     const accountId = (headers.get('Authorization') || '').replace('Bearer ', '');
-    this.calls.push({ method, path: target.pathname });
+    this.calls.push({ method, path: target.pathname, query: target.search });
     const json = (value, status = 200) =>
       new Response(JSON.stringify(value), {
         status,
@@ -32,6 +32,7 @@ export class MockDirectDrive {
       ...file,
       bytes: undefined,
       etag: `"v${file.revision}"`,
+      version: String(file.revision),
       ownedByMe: file.owner === accountId,
     });
     if (!accountId) return json({}, 401);
@@ -48,6 +49,18 @@ export class MockDirectDrive {
     if (match) {
       const file = this.items.get(match[1]);
       if (!file || file.owner !== accountId) return json({}, 404);
+      if (method === 'PATCH') {
+        const remove = new Set((target.searchParams.get('removeParents') || '').split(','));
+        const add = target.searchParams.get('addParents');
+        file.parents = [
+          ...new Set([
+            ...(file.parents || []).filter((id) => !remove.has(id)),
+            ...(add ? [add] : []),
+          ]),
+        ];
+        file.revision++;
+        return json(meta(file));
+      }
       if (method === 'PUT') {
         if (this.race) {
           const action = this.race;

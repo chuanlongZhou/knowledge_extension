@@ -1,0 +1,49 @@
+# GUGA Knowledge · Texte français
+
+## Nom
+
+GUGA Knowledge
+
+## Description courte
+
+Gardez pages, notes et idées. Classez hors ligne, retrouvez vos projets et sauvegardez avec Google Drive ou un ZIP.
+
+## Accroche
+
+Une place pour vos idées.
+
+## Signature
+
+YOUR KNOWLEDGE, GUGUGAGA
+
+## Description détaillée
+
+GUGA Knowledge est votre boîte à connaissances dans le navigateur. Gardez pages utiles, extraits, images et idées spontanées, puis reliez-les avec des étiquettes et des projets pour retrouver ce que vous avez collecté.
+
+Capturez maintenant, classez hors ligne
+Enregistrez des liens et du texte sélectionné depuis le clic droit, un raccourci ou le panneau latéral. Rédigez en Markdown, collez des images, lancez un enregistrement audio ou capturez la partie visible d’une page. Vos fiches restent dans le navigateur, disponibles hors ligne.
+
+Reliez les ressources à vos projets
+Ajoutez plusieurs étiquettes et associez une fiche à différents projets. Descriptions, sous-projets et graphes vous aident à relier les ressources à vos objectifs. Filtrez les fiches classées selon leur appartenance à un projet pour repérer les ressources encore inutilisées.
+
+Gardez vos lectures ensemble
+Regroupez des pages et marquez-les comme lues. Déplacez une page entre deux groupes, ou glissez le groupe entier dans un projet, sur une étiquette ou dans un autre groupe.
+
+Vos connaissances dans chaque nouvel onglet
+Quand l’extension est activée, GUGA s’ouvre dans les nouveaux onglets Chrome. Retrouvez Todo et Idea, vos favoris récents, vos groupes à lire et vos projets. Ajoutez vos sites habituels au Dock et choisissez le nombre de favoris dans les paramètres.
+
+Votre bibliothèque, à votre rythme
+Connectez votre propre compte Google Drive et choisissez quand télécharger ou envoyer. Fiches, projets, relations, étiquettes et sites du Dock sont synchronisés ; images et audios sont séparés. Exportez un ZIP complet classé par projet ou étiquette, avec les noms Markdown d’origine et les pièces jointes pour lire et sauvegarder vos ressources.
+
+Un espace à votre goût
+Choisissez l’anglais, le chinois, le français ou le japonais, six palettes, vos polices et un compagnon. Plusieurs tris sont disponibles. Une modification conserve la position de votre carte jusqu’à la réouverture de la vue ou au nouveau tri.
+
+L’utilisation hors ligne ne nécessite pas de compte GUGA. Google Drive est facultatif ; la synchronisation commence à votre demande. Sans publicité, analyse d’usage ni traitement automatique par IA. Exportez une sauvegarde ou vérifiez vos données cloud avant de désinstaller.
+
+## Légendes des captures
+
+1. Un peu de place pour vos tâches et vos idées.
+2. Donnez une place à vos connaissances.
+3. Découvrez les liens entre vos notes.
+4. Retrouvez les détails qui comptent.
+5. Emportez votre bibliothèque, par projet ou étiquette.

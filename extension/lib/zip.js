@@ -1,6 +1,7 @@
 // Small ZIP reader/writer. Store binary assets directly, without a runtime library.
 const encoder = new TextEncoder(),
   decoder = new TextDecoder();
+export const MAX_ZIP_BYTES = 512 * 1024 * 1024;
 const crcTable = Uint32Array.from({ length: 256 }, (_, index) => {
   let value = index;
   for (let bit = 0; bit < 8; bit++) value = (value >>> 1) ^ (value & 1 ? 0xedb88320 : 0);
@@ -60,11 +61,13 @@ export async function writeZip(files) {
     directory.set(name, 46);
     central.push(directory);
     offset += header.length + data.length;
-    if (offset > 512 * 1024 * 1024) throw new Error('本地打包超过 512 MB，请分批导出。');
+    if (offset > MAX_ZIP_BYTES) throw new Error('本地打包超过 512 MB，请分批导出。');
   }
   const size = central.reduce((sum, b) => sum + b.length, 0),
     end = new Uint8Array(22),
     e = new DataView(end.buffer);
+  if (offset + size + end.length > MAX_ZIP_BYTES)
+    throw new Error('本地打包超过 512 MB，请分批导出。');
   e.setUint32(0, 0x06054b50, true);
   e.setUint16(8, files.size, true);
   e.setUint16(10, files.size, true);
@@ -82,16 +85,47 @@ export function validZipPath(path) {
     !path.includes(':')
   );
 }
-export async function readZip(blob, { maxEntryBytes = 32 * 1024 * 1024 } = {}) {
-  // Build verification opts in to larger bundled installers. User imports keep
-  // the existing 32 MiB limit per entry.
+async function inflateBounded(bytes, size) {
+  const reader = new Blob([bytes])
+    .stream()
+    .pipeThrough(new DecompressionStream('deflate-raw'))
+    .getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.length;
+      if (total > size) {
+        await reader.cancel();
+        throw new Error('ZIP 校验失败或解压内容过大。');
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const result = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return result;
+}
+export async function readZip(blob, { maxEntryBytes = 32 * 1024 * 1024, entryLimits = {} } = {}) {
+  // Only caller-selected paths can exceed the ordinary per-file limit.
+  const validLimit = (value) => Number.isSafeInteger(value) && value >= 0 && value <= MAX_ZIP_BYTES;
   if (
-    !Number.isSafeInteger(maxEntryBytes) ||
-    maxEntryBytes < 0 ||
-    maxEntryBytes > 512 * 1024 * 1024
+    !validLimit(maxEntryBytes) ||
+    !entryLimits ||
+    typeof entryLimits !== 'object' ||
+    Array.isArray(entryLimits) ||
+    Object.entries(entryLimits).some(([name, value]) => !validZipPath(name) || !validLimit(value))
   )
     throw new Error('ZIP 文件大小限制无效。');
-  if (blob.size > 512 * 1024 * 1024) throw new Error('ZIP 超过 512 MB。');
+  if (blob.size > MAX_ZIP_BYTES) throw new Error('ZIP 超过 512 MB。');
   const data = new Uint8Array(await blob.arrayBuffer()),
     view = new DataView(data.buffer);
   let end = -1;
@@ -125,7 +159,8 @@ export async function readZip(blob, { maxEntryBytes = 32 * 1024 * 1024 } = {}) {
       files.has(name) ||
       flags & 1 ||
       ![0, 8].includes(method) ||
-      size > maxEntryBytes ||
+      size > (Object.hasOwn(entryLimits, name) ? entryLimits[name] : maxEntryBytes) ||
+      total + size > MAX_ZIP_BYTES ||
       localOffset + 30 > data.length ||
       view.getUint32(localOffset, true) !== 0x04034b50
     )
@@ -137,14 +172,9 @@ export async function readZip(blob, { maxEntryBytes = 32 * 1024 * 1024 } = {}) {
       view.getUint16(localOffset + 28, true);
     if (start + compressed > data.length) throw new Error('ZIP 文件不完整。');
     let bytes = data.slice(start, start + compressed);
-    if (method === 8)
-      bytes = new Uint8Array(
-        await new Response(
-          new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw')),
-        ).arrayBuffer(),
-      );
+    if (method === 8) bytes = await inflateBounded(bytes, size);
     total += bytes.length;
-    if (bytes.length !== size || crc32(bytes) !== crc || total > 512 * 1024 * 1024)
+    if (bytes.length !== size || crc32(bytes) !== crc || total > MAX_ZIP_BYTES)
       throw new Error('ZIP 校验失败或解压内容过大。');
     files.set(name, bytes);
   }

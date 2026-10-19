@@ -1,3 +1,4 @@
+import { t, msg } from './i18n.js';
 import { el, button, field, option } from './dom.js';
 import { colorControl } from './appearance.js';
 
@@ -5,70 +6,70 @@ const KEY = 'uiTheme';
 export const THEME_PRESETS = [
   {
     id: 'vintage-vinyl',
-    label: '美式复古',
+    label: t('美式复古'),
     name: 'Vintage Vinyl',
     swatches: [
-      ['复古青绿 · Vintage Teal', '#3E6868'],
-      ['陶土红 · Retro Coral', '#C94E44'],
-      ['亚麻卡其 · Linen Beige', '#C1AB85'],
+      [t('复古青绿 · Vintage Teal'), '#3E6868'],
+      [t('陶土红 · Retro Coral'), '#C94E44'],
+      [t('亚麻卡其 · Linen Beige'), '#C1AB85'],
     ],
     palette: ['#f5f0e8', '#fffdf9', '#263d3d', '#536563', '#C1AB85', '#3E6868'],
   },
   {
     id: 'hawaiian-surf',
-    label: '美式复古',
+    label: t('美式复古'),
     name: 'Hawaiian Surf',
     swatches: [
-      ['阳光黄 · Sunshine Yellow', '#FBC359'],
-      ['冲浪绿 · Surf Green', '#73A642'],
-      ['湖水蓝 · Lagoon Blue', '#4B848A'],
+      [t('阳光黄 · Sunshine Yellow'), '#FBC359'],
+      [t('冲浪绿 · Surf Green'), '#73A642'],
+      [t('湖水蓝 · Lagoon Blue'), '#4B848A'],
     ],
     palette: ['#fff7e8', '#fffef9', '#263e40', '#526352', '#e4d3ac', '#4B848A'],
   },
   {
     id: 'french-vintage',
-    label: '法式复古',
+    label: t('法式复古'),
     name: 'French Vintage',
     swatches: [
-      ['深鼠尾草绿 · Deep Sage', '#3D5D52'],
-      ['深咖啡棕 · Espresso Brown', '#352D27'],
-      ['柔沙米色 · Soft Sand', '#D3B8A6'],
+      [t('深鼠尾草绿 · Deep Sage'), '#3D5D52'],
+      [t('深咖啡棕 · Espresso Brown'), '#352D27'],
+      [t('柔沙米色 · Soft Sand'), '#D3B8A6'],
     ],
     palette: ['#f5eee9', '#fffdfa', '#352D27', '#686056', '#D3B8A6', '#3D5D52'],
   },
   {
     id: 'spiced-chai',
-    label: '暖调香料',
+    label: t('暖调香料'),
     name: 'Spiced Chai',
     swatches: [
-      ['Red Chai · 红茶棕', '#632626'],
-      ['Masala · 玛萨拉红', '#9D5353'],
-      ['Cinnamon Toast · 肉桂吐司', '#BF8567'],
-      ['Cardamom · 小豆蔻米黄', '#DBC896'],
+      [t('Red Chai · 红茶棕'), '#632626'],
+      [t('Masala · 玛萨拉红'), '#9D5353'],
+      [t('Cinnamon Toast · 肉桂吐司'), '#BF8567'],
+      [t('Cardamom · 小豆蔻米黄'), '#DBC896'],
     ],
     palette: ['#f9f3e7', '#fffdf8', '#392626', '#9D5353', '#DBC896', '#632626'],
   },
   {
     id: 'ocean-mist',
-    label: '海洋自然',
+    label: t('海洋自然'),
     name: 'Ocean Mist',
     swatches: [
-      ['Ocean Deep · 深海绿', '#4E635E'],
-      ['Villa Nova · 象牙米白', '#E2E0C8'],
-      ['Siren Song · 浅灰鼠尾草绿', '#A6B49E'],
-      ['Big River · 河岸灰绿', '#818C78'],
+      [t('Ocean Deep · 深海绿'), '#4E635E'],
+      [t('Villa Nova · 象牙米白'), '#E2E0C8'],
+      [t('Siren Song · 浅灰鼠尾草绿'), '#A6B49E'],
+      [t('Big River · 河岸灰绿'), '#818C78'],
     ],
     palette: ['#E2E0C8', '#fafbf5', '#263630', '#54634f', '#A6B49E', '#4E635E'],
   },
   {
     id: 'matcha-forest',
-    label: '抹茶森林',
+    label: t('抹茶森林'),
     name: 'Matcha Forest',
     swatches: [
-      ['Almond · 杏仁米色', '#D6BD98'],
-      ['Matcha Brew · 抹茶绿', '#677D6A'],
-      ['Forest Roast · 森林深绿', '#40534C'],
-      ['Eclipse · 暗夜墨绿', '#1A3636'],
+      [t('Almond · 杏仁米色'), '#D6BD98'],
+      [t('Matcha Brew · 抹茶绿'), '#677D6A'],
+      [t('Forest Roast · 森林深绿'), '#40534C'],
+      [t('Eclipse · 暗夜墨绿'), '#1A3636'],
     ],
     palette: ['#f5f0e8', '#fdfcf8', '#1A3636', '#677D6A', '#D6BD98', '#40534C'],
   },
@@ -80,15 +81,22 @@ const palettes = {
   ...Object.fromEntries(THEME_PRESETS.map((preset) => [preset.id, preset.palette])),
 };
 const colors = ['background', 'surface', 'text', 'muted', 'border', 'accent'];
-const colorLabels = ['页面背景', '卡片背景', '正文颜色', '辅助文字', '边框颜色', '主题色'];
+const colorLabels = [
+  t('页面背景'),
+  t('卡片背景'),
+  t('正文颜色'),
+  t('辅助文字'),
+  t('边框颜色'),
+  t('主题色'),
+];
 const zones = {
-  general: ['基础界面', 14],
-  sidebar: ['导航与侧栏', 13],
-  records: ['记录卡片', 14],
-  editor: ['编辑器', 14],
-  preview: ['记录预览', 15],
-  graph: ['关系图', 13],
-  headings: ['页面标题', 24],
+  general: [t('基础界面'), 14],
+  sidebar: [t('导航与侧栏'), 13],
+  records: [t('记录卡片'), 14],
+  editor: [t('编辑器'), 14],
+  preview: [t('记录预览'), 15],
+  graph: [t('关系图'), 13],
+  headings: [t('页面标题'), 24],
 };
 const systemFont = "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif";
 let current = {},
@@ -169,12 +177,12 @@ export async function themeEditor() {
   function render() {
     const mode = el(
       'select',
-      { 'aria-label': '主题' },
+      { 'aria-label': t('主题') },
       ...[
-        ['paper', '纸张'],
-        ['light', '明亮'],
-        ['dark', '深色'],
-        ['system', '跟随系统'],
+        ['paper', t('纸张')],
+        ['light', t('明亮')],
+        ['dark', t('深色')],
+        ['system', t('跟随系统')],
         ...THEME_PRESETS.map((preset) => [preset.id, `${preset.label} · ${preset.name}`]),
       ].map(([key, label]) => option(key, label, key === draft.mode)),
     );
@@ -184,7 +192,11 @@ export async function themeEditor() {
       applyTheme(draft);
       render();
     });
-    const presets = el('div', { class: 'theme-presets', role: 'group', 'aria-label': '配色主题' });
+    const presets = el('div', {
+      class: 'theme-presets',
+      role: 'group',
+      'aria-label': t('配色主题'),
+    });
     for (const preset of THEME_PRESETS) {
       const selected = draft.mode === preset.id && !Object.keys(draft.colors).length;
       const card = button(
@@ -198,7 +210,7 @@ export async function themeEditor() {
         'theme-preset',
       );
       card.dataset.preset = preset.id;
-      card.setAttribute('aria-label', `预览 ${preset.name}`);
+      card.setAttribute('aria-label', msg`预览 ${preset.name}`);
       card.setAttribute('aria-pressed', String(selected));
       card.style.setProperty('--preset-paper', preset.palette[0]);
       card.style.setProperty('--preset-ink', preset.palette[2]);
@@ -248,13 +260,13 @@ export async function themeEditor() {
         min: 11,
         max: 36,
         value: draft.fonts[key].size,
-        'aria-label': `${label}字号`,
+        'aria-label': msg`${label}字号`,
       });
       const family = el('input', {
         type: 'text',
         value: draft.fonts[key].family,
         list: 'font-families',
-        'aria-label': `${label}字体`,
+        'aria-label': msg`${label}字体`,
       });
       const update = () => {
         draft.fonts[key] = normalizeTheme({
@@ -269,8 +281,8 @@ export async function themeEditor() {
           'div',
           { class: 'theme-font-row' },
           el('strong', {}, label),
-          field('字号', size),
-          field('字体', family),
+          field(t('字号'), size),
+          field(t('字体'), family),
         ),
       );
     }
@@ -279,7 +291,7 @@ export async function themeEditor() {
       min: 2,
       max: 12,
       value: draft.spacing,
-      'aria-label': '导航行距',
+      'aria-label': t('导航行距'),
     });
     spacing.addEventListener('input', () => {
       draft.spacing = Number(spacing.value);
@@ -289,10 +301,10 @@ export async function themeEditor() {
       el(
         'p',
         { class: 'description' },
-        '点击色卡即时预览，保存主题后应用到插件各页面。也可单独调整颜色与字体。',
+        t('点击色卡即时预览，保存主题后应用到插件各页面。也可单独调整颜色与字体。'),
       ),
       presets,
-      field('主题', mode),
+      field(t('主题'), mode),
       colorGrid,
       fonts,
       el(
@@ -302,8 +314,8 @@ export async function themeEditor() {
           (name) => option(name, name),
         ),
       ),
-      field('导航行距', spacing),
-      button('恢复默认', () => {
+      field(t('导航行距'), spacing),
+      button(t('恢复默认'), () => {
         draft = normalizeTheme();
         applyTheme(draft);
         render();

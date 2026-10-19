@@ -1,6 +1,6 @@
-# PKM Nexus 数据格式 v4
+# GUGA Knowledge 数据格式 v4
 
-实现版本：0.8.0 简化版。用户收集的内容只有四种类型，共用 Record 表；项目为独立组织记录。图片与录音是普通记录的附件；`purpose` 已移除。
+实现版本：0.9.1 简化版。用户收集的内容只有四种类型，共用 Record 表；项目为独立组织记录。图片与录音是普通记录的附件；`purpose` 已移除。
 
 ## 类型与对应界面
 
@@ -130,10 +130,13 @@ id 为组内项目 ID；url 为 HTTP / HTTPS 链接，最多 8,000 字符；titl
 
 ```text
 Google Drive 所选文件夹/
-  <id>.json                一条记录、项目或删除标记的 JSON 信封
-  <sha256>.<ext>            按内容校验值复用的图片和音频
+  records/<id>.json        一条记录、项目或删除标记的 JSON 信封
+  metadata/tags.json        标签定义：空标签、颜色与描述
+  assets/images/<hash>.*    图片
+  assets/audio/<hash>.*     音频；旧 MHTML 等附件放在 assets
+  <id>.json 等旧平铺文件   新版兼容读取，显式整理后保留 Drive 文件 ID
 浏览器 IndexedDB/          记录、附件、草稿、同步基线及冲突
-导出 ZIP/                  backup.json、records、notes、assets、recovery（如有）
+导出 ZIP/                  backup.json、records、按项目或标签整理的 notes、assets、recovery（如有）
 ```
 
 项目为 v5 独立组织记录，不是第五个收集入口。旧项目关键词字段只做兼容读取，首次修改项目后移除。删除标记仅保留 schema_version、id、kind: tombstone、created_at、deleted_at，防止旧设备复活记录。
@@ -169,7 +172,7 @@ Google Drive 所选文件夹/
 - 图节点由直接成员和直接子项目推导，不另存容易过期的 nodes 数组。子项目作为一个元素，不能连接其内部记录或其他项目记录。
 - `favorite?: boolean` 是记录喜爱状态；旧记录未设置时不补写字段，保持原哈希。
 - `UrlItem.removed_at?: ISODate | null` 标记网页的划线删除；保留条目、URL 与 ID，可恢复；被划线条目不计入未读，也不用于关闭浏览器标签页。
-- `graph.positions`、喜爱、项目描述及外观参与正常同步；空标签、标签颜色放在本机 UI 状态。
+- `graph.positions`、喜爱、项目描述及外观参与正常同步；从 0.8.3 起空标签、标签颜色及描述通过独立 tags.json 同步。
 - 备份与直接同步的记录支持 v1–v5。读取旧记录不改变哈希；新增字段时升级相应记录。
 - 移出成员、删除或合并记录会与清理相关边在同一浏览器事务中提交。导入与批量下载校验层级及图端点；不一致时停止并保留原数据。
 
@@ -180,3 +183,38 @@ Google Drive 所选文件夹/
 `chrome.storage.local.uiTheme` 保存主题模式、六种颜色、七个区域的字体和字号、导航行距；跨扩展页面应用。它属于本机偏好，不进入资料库记录或数据备份。标签外观只使用颜色，旧 `icon` 偏好忽略。标签改名原子更新记录、待处理收集、草稿与本机名称 / 颜色映射；仅修改颜色不改变记录修订。
 
 草稿 UI 可包含 `listEntryTodo`、`listEntryIdea`（未提交的一行输入），备份导入允许这两个字符串字段，仍清除旧浏览器标签页句柄。
+
+## 0.8.3 标签定义同步
+
+标签定义继续兼容 ui:tag-groups / ui:tag-styles，增加 library:tags:revision 保护并发编辑。同步时作为独立元数据单元，不进入内容记录列表或记录计数。云端 tags.json 的信封为 `{format:'guga-tag-library', version:1, hash, record}`，record 为 `{id:'guga-tag-library', type:'tag_library', version:1, title:'标签定义', definitions:[{name,color,description}]}`；appProperties 为 `{pkm_role:'tag_library', record_id:'guga-tag-library'}`。名称最多 100 字，描述最多 2000 字，颜色 #RRGGBB。整份标签定义是一个冲突单位，双方同时修改时保留版本供选择。
+
+下载元数据与记录在同一 IndexedDB 事务内检查修订并提交；沿用哈希、Drive ETag 与条件更新。backup.json 增加可选 tag_library 字段，旧备份缺少该字段时不修改本机标签。导入合并不同名称，同名默认保留本机，显式勾选更新时采用备份定义；不导入 Google 绑定或凭证。旧客户端忽略新的元数据角色，各设备应更新到支持标签同步的版本。
+
+## 0.8.4 增量读取与导出布局
+
+IndexedDB 库版本升为 5，新增独立 driveCache（记录 schema 不变）。缓存包含 folderId、Drive fileId / version、稳定读取时的 ETag 与已校验的信封；列表版本相同才复用，复用前仍验证内容哈希，缓存损坏或缺少版本时重新读取。缓存版本来自与内容配对的稳定读取，不能使用更早的列表版本；缓存不覆盖本机未上传的记录，不代替同步基线，不导出。库升级保持已有 v4 库的记录哈希 / rev / dirty 和同步基线。读取与附件下载的并发上限均为 4，失败时等待在途任务结束再返回。
+
+新目录带有 `{pkm_role:'directory', pkm_root:<rootId>, pkm_directory:<logicalPath>}`；只递归读取已识别的直属 / 子目录。记录及附件仍使用稳定 ID / 哈希文件名，身份和引用不依赖目录名。旧平铺文件与新文件可混合；显式整理只移动已识别的数据文件，不改内容、不复制、不删除未知文件，失败后重新预览剩余项。所有设备先升级后再使用新目录。
+
+导出 groupBy 支持 project / tag / none。notes 使用清理后的原始项目 / 记录名称，重名增加稳定短 ID；project 保留子项目路径，tag 为多个标签输出各自副本，回收站、未归入项目、未打标签单独归档。过长层级收拢到项目根目录，原始关系完整保留在 JSON。相对附件路径按每份 Markdown 的深度重写，附件只保存一次。export-index.json 记录 ID 对应的阅读路径；backup.json 与 records/<id>.json 仍唯一，完整 ZIP 导入不会把阅读副本重复导入，Markdown 文件的外部修改不替代 backup.json。Markdown ZIP 用于阅读，不是完整恢复包。
+
+## 0.9.0 启动页与排序偏好
+
+启动页不增加记录类型或云端格式。Todo / Idea 仍读写 `nexus-list`，通过现有 Markdown / list 投影和修订检查保存，保留另一分区与已有备注。纯展示不会创建或恢复清单；用户明确编辑时才保存。喜爱网页、未读网页组、项目及成员直接读取现有资料库，不存第二份内容。
+
+`chrome.storage.local.startPage` 保留 `{favoritesLimit:8, shortcuts:[]}` 用于旧版迁移与本机显示设置。启动页由 manifest 的 chrome_url_overrides.newtab 固定注册；旧版本的 enabled / decided 字段被忽略。favoritesLimit 限 5 / 8 / 10，仍只存在本机。Dock 网站迁入 IndexedDB `library:shortcuts`，最多 12 项 `{id,name,url}`，名称最多 40 字，网址只允许不含凭证的 HTTP / HTTPS；本机编辑使用修订检查，旧 chrome.storage 内容首次读取或同步前迁移，不覆盖已下载的列表。
+
+手动 Drive 同步将 Dock 整体作为 `metadata/shortcuts.json`：信封为 `{format:'guga-shortcut-library',version:1,hash,record}`，record 为 `{id:'guga-shortcut-library',type:'shortcut_library',version:1,title:'常用网站',shortcuts:[{id,name,url}]}`，appProperties 为 `{pkm_role:'shortcut_library',record_id:'guga-shortcut-library'}`。顺序和删除随列表同步；并发编辑用哈希、修订、Drive ETag 和现有冲突选择保留双方版本。下载与记录在同一 IndexedDB 事务提交。完整备份的可选 `shortcut_library` 字段用于恢复，旧备份缺少时保留本机 Dock。
+
+`chrome.storage.local.recordSort` 保存 `{mode,direction}`，mode 为 updated_at / created_at / tag / project / title，direction 为 asc / desc；同时随每个整理窗口的会话视图保存。时间默认降序，文本默认升序；项目按有效项目路径比较，多标签 / 多项目使用排序后的名称，缺值最后。当前筛选的记录 ID 顺序在内存中冻结，过滤与分页前应用；新增 ID 追加，已删除 ID 移除，编辑只提示有排序变化。重新进入视图、切换筛选 / 排序、刷新或主动重新排序时重建。清单及置顶记录继续优先。排序偏好不改变任何记录时间戳、修订或同步基线。
+
+## 0.9.1 界面语言
+
+`chrome.storage.local.uiLanguage` 保存 en / zh-CN / fr / ja，默认 zh-CN，支持常用地区别名并对未知值回退中文。语言不进入记录、同步或数据备份。页面引导脚本先读取语言，再加载界面模块；Service Worker 同步登记事件，在请求处理前等待偏好初始化，不在模块顶层等待存储。
+
+消息表包含三套翻译，中文原文作为稳定消息键；模板的编号占位符仅插入数据，不再次解析插值。静态界面只翻译显式 data-i18n 标记；用户标题、正文、标签 / 项目名称、网站名称和 Markdown 内容不经过界面翻译。日期与文本排序使用所选 locale。应用语言前保存当前侧栏草稿后重载；其他页面保持编辑状态，用户下次打开或刷新时应用。右键菜单与工具栏标题响应本机偏好变化。
+
+## 上架前修复
+
+startPage 偏好只读取 favoritesLimit 与 shortcuts；旧 enabled / decided 字段被忽略，下次保存时移除。现有 Dock 内容迁入同步元数据，不改变网站名称、地址和顺序。
+完整 ZIP 的 backup.json 是聚合清单，导入时可超过 32 MiB；其他成员保持 32 MiB 上限，记录和附件仍执行原有结构、哈希与 20 MB 附件校验。整个 ZIP 及累计解压内容上限为 512 MiB，压缩成员按声明大小逐块校验并在超限时停止。

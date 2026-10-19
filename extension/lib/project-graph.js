@@ -1,3 +1,4 @@
+import { t, msg } from './i18n.js';
 import { el, button, field, option } from './dom.js';
 import { graphNodeOf, upgradeProject, saveProjectEdge, removeProjectEdge } from './projects.js';
 import { recordPreview } from './record-preview.js';
@@ -33,31 +34,31 @@ export async function projectGraph(
     const rows = await db.allRows();
     const project = rows.find((r) => r.id === projectId)?.record;
     if (!project || project.deleted_at) {
-      root.replaceChildren(el('p', {}, '项目已不存在。'));
+      root.replaceChildren(el('p', {}, t('项目已不存在。')));
       return;
     }
     const nodes = rows.map((r) => r.record).filter((r) => graphNodeOf(r, projectId));
     const edges = project.graph?.edges || [];
     const names = new Map(
-      nodes.map((r) => [r.id, r.type === 'list' ? 'Todo / Idea' : r.title || '未命名记录']),
+      nodes.map((r) => [r.id, r.type === 'list' ? 'Todo / Idea' : r.title || t('未命名记录')]),
     );
     const source = el(
       'select',
-      { 'aria-label': '关系起点' },
-      option('', '选择节点'),
+      { 'aria-label': t('关系起点') },
+      option('', t('选择节点')),
       ...nodes.map((r) => option(r.id, names.get(r.id))),
     );
     const target = el(
       'select',
-      { 'aria-label': '关系终点' },
-      option('', '选择节点'),
+      { 'aria-label': t('关系终点') },
+      option('', t('选择节点')),
       ...nodes.map((r) => option(r.id, names.get(r.id))),
     );
     const label = el('input', {
       type: 'text',
       maxlength: 200,
-      'aria-label': '关系说明',
-      placeholder: '例如：参考、补充、相关',
+      'aria-label': t('关系说明'),
+      placeholder: t('例如：参考、补充、相关'),
     });
     const error = el('p', { class: 'error-text', role: 'alert' });
     const status = el('span', { class: 'muted graph-status', role: 'status' });
@@ -88,11 +89,11 @@ export async function projectGraph(
         const p = upgradeProject(r);
         return { ...p, graph: { ...p.graph, positions }, updated_at: new Date().toISOString() };
       });
-      status.textContent = '布局已保存';
+      status.textContent = t('布局已保存');
       onChanged();
     }
     const add = run(async () => {
-      if (!source.value || !target.value) throw new Error('请选择两个节点。');
+      if (!source.value || !target.value) throw new Error(t('请选择两个节点。'));
       await saveProjectEdge(db, projectId, {
         id: editing || crypto.randomUUID(),
         source: source.value,
@@ -104,12 +105,12 @@ export async function projectGraph(
       onChanged();
       await render();
     });
-    const save = button('添加关系', add, 'button primary');
+    const save = button(t('添加关系'), add, 'button primary');
     const svg = svgNode('svg', {
       width: '100%',
       height: '100%',
       role: 'img',
-      'aria-label': '项目内记录关系图',
+      'aria-label': t('项目内记录关系图'),
     });
     const setView = () =>
       svg.setAttribute('viewBox', `${view.x} ${view.y} ${view.width} ${view.height}`);
@@ -131,7 +132,7 @@ export async function projectGraph(
       source.value = edge.source;
       target.value = edge.target;
       label.value = edge.label;
-      save.textContent = '保存关系';
+      save.textContent = t('保存关系');
       controls.open = true;
     }
     for (const edge of edges) {
@@ -140,12 +141,12 @@ export async function projectGraph(
         class: 'graph-edge',
         tabindex: 0,
         role: 'button',
-        'aria-label': `编辑关系 ${edge.label || '相关'}`,
+        'aria-label': msg`编辑关系 ${edge.label || t('相关')}`,
       });
       const text = svgNode(
         'text',
         { class: 'graph-edge-label', 'text-anchor': 'middle' },
-        edge.label || '相关',
+        edge.label || t('相关'),
       );
       line.addEventListener('click', () => editEdge(edge));
       line.addEventListener('keydown', (e) => {
@@ -161,7 +162,9 @@ export async function projectGraph(
       el(
         'p',
         { class: 'description' },
-        '点击记录预览；拖动节点整理布局；点击“连线”后依次选择两个节点，或从连接点拖到另一个节点。',
+        t(
+          '点击记录预览；拖动节点整理布局；点击“连线”后依次选择两个节点，或从连接点拖到另一个节点。',
+        ),
       ),
     );
     const showPreview = run(async (record) => {
@@ -174,9 +177,9 @@ export async function projectGraph(
               'article',
               { class: 'record-preview' },
               el('h2', {}, `${record.appearance?.icon || '📁'} ${record.title}`),
-              el('p', {}, record.summary || '尚未填写项目描述。'),
+              el('p', {}, record.summary || t('尚未填写项目描述。')),
               button(
-                '进入子项目',
+                t('进入子项目'),
                 run(async () => {
                   projectId = record.id;
                   selectedId = null;
@@ -194,7 +197,7 @@ export async function projectGraph(
       preview = next;
       detail.replaceChildren(
         button(
-          record.type === 'project' ? '编辑子项目' : '编辑记录',
+          record.type === 'project' ? t('编辑子项目') : t('编辑记录'),
           run(async () => {
             await Promise.all([...summarySaves].map((save) => save()));
             await onEdit(record);
@@ -220,7 +223,7 @@ export async function projectGraph(
       if (!from) {
         from = record.id;
         source.value = record.id;
-        status.textContent = '请选择终点';
+        status.textContent = t('请选择终点');
         groups.get(record.id)?.classList.add('connecting');
       } else {
         source.value = from;
@@ -236,7 +239,7 @@ export async function projectGraph(
         transform: `translate(${position.x} ${position.y})`,
         tabindex: '0',
         role: 'button',
-        'aria-label': `预览 ${names.get(record.id)}`,
+        'aria-label': msg`预览 ${names.get(record.id)}`,
         'data-node-id': record.id,
       });
       const rect = svgNode('rect', { x: -125, y: -55, width: 250, height: 125, rx: 8 });
@@ -253,7 +256,7 @@ export async function projectGraph(
           cy: 0,
           r: 9,
           class: 'graph-port',
-          'aria-label': '拖动此处连线',
+          'aria-label': t('拖动此处连线'),
         }),
       );
       const summaryBox = svgNode('foreignObject', { x: -112, y: -16, width: 224, height: 74 });
@@ -261,8 +264,8 @@ export async function projectGraph(
         class: 'graph-summary',
         rows: 3,
         maxlength: 2000,
-        'aria-label': `${child ? '子项目描述' : '人工总结'} ${names.get(record.id)}`,
-        placeholder: child ? '添加子项目描述…' : '添加人工总结…',
+        'aria-label': `${child ? t('子项目描述') : t('人工总结')} ${names.get(record.id)}`,
+        placeholder: child ? t('添加子项目描述…') : t('添加人工总结…'),
       });
       summary.value = record.summary || '';
       let summaryTimer,
@@ -281,7 +284,7 @@ export async function projectGraph(
             }));
             savedSummary = value;
             record.summary = value;
-            status.textContent = child ? '描述已保存' : '总结已保存';
+            status.textContent = child ? t('描述已保存') : t('总结已保存');
             if (selectedId === record.id && root.isConnected) await showPreview(record);
             onChanged();
           })
@@ -293,7 +296,7 @@ export async function projectGraph(
       summarySaves.add(persistSummary);
       summary.addEventListener('input', () => {
         clearTimeout(summaryTimer);
-        status.textContent = '正在保存…';
+        status.textContent = t('正在保存…');
         summaryTimer = setTimeout(persistSummary, 500);
       });
       summary.addEventListener('blur', persistSummary);
@@ -443,11 +446,11 @@ export async function projectGraph(
       },
       { passive: false },
     );
-    const connect = button(connecting ? '结束连线' : '连线', () => {
+    const connect = button(connecting ? t('结束连线') : t('连线'), () => {
       connecting = !connecting;
       from = null;
-      connect.textContent = connecting ? '结束连线' : '连线';
-      status.textContent = connecting ? '依次选择两个节点' : '';
+      connect.textContent = connecting ? t('结束连线') : t('连线');
+      status.textContent = connecting ? t('依次选择两个节点') : '';
       groups.forEach((g) => g.classList.remove('connecting'));
     });
     const relationList = el(
@@ -460,15 +463,15 @@ export async function projectGraph(
           el(
             'span',
             {},
-            `${names.get(edge.source) || edge.source} ↔ ${names.get(edge.target) || edge.target} · ${edge.label || '相关'}`,
+            `${names.get(edge.source) || edge.source} ↔ ${names.get(edge.target) || edge.target} · ${edge.label || t('相关')}`,
           ),
-          button('编辑关系', () => editEdge(edge)),
+          button(t('编辑关系'), () => editEdge(edge)),
           el(
             'button',
             {
               type: 'button',
               class: 'icon-button',
-              'aria-label': '删除关系',
+              'aria-label': t('删除关系'),
               onclick: run(async () => {
                 await removeProjectEdge(db, projectId, edge.id);
                 onChanged();
@@ -484,25 +487,25 @@ export async function projectGraph(
     const controls = el(
       'details',
       { class: 'graph-controls' },
-      el('summary', {}, '关系说明与列表'),
+      el('summary', {}, t('关系说明与列表')),
       el(
         'div',
         { class: 'graph-form' },
-        field('节点 A', source),
-        field('节点 B', target),
-        field('关系说明', label),
+        field(t('节点 A'), source),
+        field(t('节点 B'), target),
+        field(t('关系说明'), label),
       ),
       el(
         'div',
         { class: 'row' },
         save,
-        button('取消编辑', () => {
+        button(t('取消编辑'), () => {
           editing = null;
           from = null;
           source.value = '';
           target.value = '';
           label.value = '';
-          save.textContent = '添加关系';
+          save.textContent = t('添加关系');
         }),
       ),
       relationList,
@@ -514,7 +517,7 @@ export async function projectGraph(
         ...(project.parent_project_id
           ? [
               button(
-                '← 返回父项目',
+                t('← 返回父项目'),
                 run(async () => {
                   projectId = project.parent_project_id;
                   selectedId = null;
@@ -526,10 +529,10 @@ export async function projectGraph(
           : []),
         el('strong', {}, project.title),
         connect,
-        button('放大', () => zoom(0.8)),
-        button('缩小', () => zoom(1.25)),
+        button(t('放大'), () => zoom(0.8)),
+        button(t('缩小'), () => zoom(1.25)),
         button(
-          '重新排列',
+          t('重新排列'),
           run(async () => {
             nodes.forEach((r, i) =>
               points.set(r.id, { x: 150 + (i % 3) * 290, y: 105 + Math.floor(i / 3) * 185 }),
@@ -540,7 +543,11 @@ export async function projectGraph(
         ),
         status,
       ),
-      el('p', { class: 'description' }, project.summary || '为项目填写描述，说明目标和资料范围。'),
+      el(
+        'p',
+        { class: 'description' },
+        project.summary || t('为项目填写描述，说明目标和资料范围。'),
+      ),
       el('div', { class: 'graph-workspace' }, el('div', { class: 'graph-canvas' }, svg), detail),
       error,
       controls,
@@ -554,19 +561,19 @@ export async function projectGraph(
     const controls = root.querySelector('.graph-controls');
     const draft = {
       open: controls?.open,
-      source: root.querySelector('[aria-label="关系起点"]')?.value,
-      target: root.querySelector('[aria-label="关系终点"]')?.value,
-      label: root.querySelector('[aria-label="关系说明"]')?.value,
+      source: root.querySelector(`[aria-label="${t('关系起点')}" ]`)?.value,
+      target: root.querySelector(`[aria-label="${t('关系终点')}" ]`)?.value,
+      label: root.querySelector(`[aria-label="${t('关系说明')}" ]`)?.value,
     };
     await render();
     if (!root.querySelector('.graph-controls')) return;
     root.querySelector('.graph-controls').open = draft.open;
-    const source = root.querySelector('[aria-label="关系起点"]'),
-      target = root.querySelector('[aria-label="关系终点"]');
+    const source = root.querySelector(`[aria-label="${t('关系起点')}" ]`),
+      target = root.querySelector(`[aria-label="${t('关系终点')}" ]`);
     source.value = draft.source || '';
     target.value = draft.target || '';
-    root.querySelector('[aria-label="关系说明"]').value = draft.label || '';
-    if (editing) root.querySelector('.graph-controls .primary').textContent = '保存关系';
+    root.querySelector(`[aria-label="${t('关系说明')}" ]`).value = draft.label || '';
+    if (editing) root.querySelector('.graph-controls .primary').textContent = t('保存关系');
     if (from)
       root.querySelector(`[data-node-id="${CSS.escape(from)}"]`)?.classList.add('connecting');
   };

@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title data-i18n="GUGA Knowledge · 新的一页">GUGA Knowledge · 新的一页</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="theme.css" />
+    <link rel="stylesheet" href="start.css" />
+  </head>
+  <body data-mode="start">
+    <main class="start-shell">
+      <header class="start-top">
+        <a class="start-brand" href="start.html"
+          ><img class="start-brand-penguin" src="icons/penguin.png" alt="" /><strong
+            >GUGA Knowledge</strong
+          ></a
+        >
+        <nav class="start-actions" aria-label="启动页导航" data-i18n-aria-label="启动页导航">
+          <a href="dashboard.html" class="start-nav-link"
+            ><span data-i18n="打开整理页 ↗">打开整理页 ↗</span></a
+          ><a
+            href="dashboard.html#settings"
+            class="button"
+            aria-label="启动页设置"
+            data-i18n-aria-label="启动页设置"
+            data-i18n="⚙ 设置"
+            ><span data-i18n="⚙ 设置">⚙ 设置</span></a
+          >
+        </nav>
+      </header>
+      <section class="start-hero">
+        <div>
+          <p id="today" class="start-eyebrow"></p>
+          <h1 data-i18n="今天，想做点什么？">今天，想做点什么？</h1>
+          <p class="start-intro" data-i18n="留一点空间给计划，也给突然出现的灵感。">
+            <span data-i18n="留一点空间给计划，也给突然出现的灵感。"
+              >留一点空间给计划，也给突然出现的灵感。</span
+            >
+          </p>
+        </div>
+        <img
+          src="icons/mascots/sleeping-penguin.png"
+          class="start-penguin"
+          alt="休息中的企鹅"
+          data-i18n-alt="休息中的企鹅"
+        />
+      </section>
+      <section
+        id="quicklists"
+        class="quicklists"
+        aria-label="Todo 与 Idea"
+        data-i18n-aria-label="Todo 与 Idea"
+      >
+        <article class="start-list-panel todo-panel">
+          <header class="start-section-head">
+            <h2><span class="section-symbol">✓</span>Todo <small id="todo-count"></small></h2>
+            <button id="open-todo" class="start-more" data-i18n="完整清单 ↗">完整清单 ↗</button>
+          </header>
+          <div id="todo-items" class="start-list-items"></div>
+          <form id="todo-form" class="quick-add">
+            <input
+              id="todo-input"
+              type="text"
+              maxlength="5000"
+              placeholder="接下来，做这一件事…"
+              data-i18n-placeholder="接下来，做这一件事…"
+              aria-label="添加 Todo"
+              data-i18n-aria-label="添加 Todo"
+              autocomplete="off"
+            /><button type="submit" aria-label="保存 Todo" data-i18n-aria-label="保存 Todo">
+              ＋
+            </button>
+          </form>
+        </article>
+        <article class="start-list-panel idea-panel">
+          <header class="start-section-head">
+            <h2>
+              <span class="section-symbol idea-symbol">✧</span>Idea <small id="idea-count"></small>
+            </h2>
+            <button id="open-idea" class="start-more" data-i18n="完整清单 ↗">完整清单 ↗</button>
+          </header>
+          <div id="idea-items" class="start-list-items"></div>
+          <form id="idea-form" class="quick-add">
+            <input
+              id="idea-input"
+              type="text"
+              maxlength="5000"
+              placeholder="先把这个念头留下来…"
+              data-i18n-placeholder="先把这个念头留下来…"
+              aria-label="添加 Idea"
+              data-i18n-aria-label="添加 Idea"
+              autocomplete="off"
+            /><button type="submit" aria-label="保存 Idea" data-i18n-aria-label="保存 Idea">
+              ＋
+            </button>
+          </form>
+        </article>
+      </section>
+      <section
+        id="pinned-section"
+        class="start-section"
+        aria-label="置顶记录"
+        data-i18n-aria-label="置顶记录"
+        hidden
+      >
+        <header class="start-section-head">
+          <div>
+            <p class="start-eyebrow">PINNED</p>
+            <h2 data-i18n="置顶记录">置顶记录</h2>
+          </div>
+          <a class="start-more" href="dashboard.html?view=all" data-i18n="查看全部 ↗"
+            ><span data-i18n="查看全部 ↗">查看全部 ↗</span></a
+          >
+        </header>
+        <div id="pinned-cards" class="favorite-grid"></div>
+      </section>
+      <section class="start-section" aria-label="喜爱的网页" data-i18n-aria-label="喜爱的网页">
+        <header class="start-section-head">
+          <div>
+            <p class="start-eyebrow">KEEP CLOSE</p>
+            <h2>
+              <span data-i18n="喜欢的网页">喜欢的网页 </span><span class="section-dot">✦</span>
+            </h2>
+          </div>
+          <a class="start-more" href="dashboard.html?view=favorites" data-i18n="查看全部 ↗"
+            ><span data-i18n="查看全部 ↗">查看全部 ↗</span></a
+          >
+        </header>
+        <div id="favorite-cards" class="favorite-grid"></div>
+      </section>
+      <div class="start-lower-grid">
+        <section
+          class="start-section"
+          aria-label="待浏览网页组"
+          data-i18n-aria-label="待浏览网页组"
+        >
+          <header class="start-section-head">
+            <div>
+              <p class="start-eyebrow">READ NEXT</p>
+              <h2 data-i18n="待浏览的网页组">待浏览的网页组</h2>
+            </div>
+            <a class="start-more" href="dashboard.html?type=website_group" data-i18n="全部 ↗"
+              ><span data-i18n="全部 ↗">全部 ↗</span></a
+            >
+          </header>
+          <div id="group-cards" class="start-stack"></div>
+        </section>
+        <section class="start-section" aria-label="项目" data-i18n-aria-label="项目">
+          <header class="start-section-head">
+            <div>
+              <p class="start-eyebrow">MAKE CONNECTIONS</p>
+              <h2 data-i18n="正在进行的项目">正在进行的项目</h2>
+            </div>
+            <a class="start-more" href="dashboard.html" data-i18n="全部 ↗"
+              ><span data-i18n="全部 ↗">全部 ↗</span></a
+            >
+          </header>
+          <div id="project-cards" class="project-grid"></div>
+        </section>
+      </div>
+      <footer class="start-footer">
+        YOUR KNOWLEDGE, GUGUGAGA
+        <span data-i18n="浏览器离线保存 · 云端同步由你决定"
+          ><span data-i18n="浏览器离线保存 · 云端同步由你决定"
+            >浏览器离线保存 · 云端同步由你决定</span
+          ></span
+        >
+      </footer>
+    </main>
+    <nav
+      id="site-dock"
+      class="site-dock"
+      aria-label="常用网站 Dock"
+      data-i18n-aria-label="常用网站 Dock"
+    ></nav>
+    <div id="start-status" role="status" aria-live="polite"></div>
+    <script type="module" src="page.js?entry=start"></script>
+  </body>
+</html>

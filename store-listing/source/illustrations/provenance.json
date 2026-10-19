@@ -1,0 +1,13 @@
+{
+  "brandMark": "Original grey penguin from the existing project",
+  "source": "extension/icons/penguin.png",
+  "copy": "store-listing/source/illustrations/penguin.png",
+  "method": "Unmodified copy; HTML/CSS controls display size and layout only",
+  "storeIcons": {
+    "source": "extension/icons/icon-{16,32,48,128}.png",
+    "copies": "store-listing/assets/icons/current-icon-{16,32,48,128}.png",
+    "method": "Unmodified copies of the existing extension icons"
+  },
+  "decision": "Reuse the earliest penguin as the only brand mark",
+  "date": "2026-10-18"
+}

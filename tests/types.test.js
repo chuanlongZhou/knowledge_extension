@@ -17,6 +17,8 @@ import {
   migrateTodos,
   mergeUrls,
   appendWebsites,
+  moveWebsite,
+  moveWebsiteGroups,
 } from '../extension/lib/collections.js';
 import { closeCapturedTabs } from '../extension/lib/tabs.js';
 const database = (t) => {
@@ -37,6 +39,122 @@ const url = (address, title = '网页') => ({
   title,
   added_at: new Date().toISOString(),
   read_at: null,
+});
+
+test('moving a website changes both groups atomically and retains its identity and read state', async (t) => {
+  const db = database(t),
+    item = { ...url('https://example.com/article', '已读文章'), read_at: new Date().toISOString() },
+    source = newRecord({
+      type: 'website_group',
+      title: '来源',
+      url_list: [item, url('https://example.com/keep')],
+    }),
+    target = newRecord({ type: 'website_group', title: '目标' });
+  await db.saveMany([source, target].map((record) => ({ record })));
+  const sourceRev = (await db.get(source.id)).rev;
+  assert.deepEqual(await moveWebsite(db, source.id, source.id, item.id), { moved: false });
+  assert.equal((await db.get(source.id)).rev, sourceRev);
+  await moveWebsite(db, source.id, target.id, item.id);
+  assert.equal((await db.get(source.id)).record.url_list.length, 1);
+  assert.deepEqual((await db.get(target.id)).record.url_list[0], item);
+  await assert.rejects(moveWebsite(db, source.id, target.id, item.id), /已经移动或删除/);
+});
+test('whole website groups combine atomically, retain read marks and source annotations, and merge duplicate URLs', async (t) => {
+  const db = database(t),
+    shared = { ...url('https://example.com/shared'), read_at: new Date().toISOString() },
+    a = newRecord({
+      type: 'website_group',
+      title: 'A',
+      content: '保留的说明',
+      tags: ['来源'],
+      url_list: [shared, url('https://example.com/a')],
+    }),
+    b = newRecord({ type: 'website_group', title: 'B', url_list: [url('https://example.com/b')] }),
+    target = newRecord({
+      type: 'website_group',
+      title: '目标',
+      url_list: [url('https://example.com/shared', '目标标题')],
+    });
+  await db.saveMany([a, b, target].map((record) => ({ record })));
+  assert.deepEqual(await moveWebsiteGroups(db, [a.id, b.id, a.id, target.id], target.id), {
+    moved: 3,
+  });
+  const after = (await db.get(target.id)).record;
+  assert.equal(after.url_list.length, 3);
+  assert.equal(after.url_list[0].title, '目标标题');
+  assert.equal(after.url_list[0].read_at, shared.read_at);
+  assert.deepEqual((await db.get(a.id)).record.tags, ['来源']);
+  assert.equal((await db.get(a.id)).record.content, '保留的说明');
+  assert.equal((await db.get(a.id)).record.url_list.length, 0);
+  assert.equal((await db.get(b.id)).record.url_list.length, 0);
+});
+test('a full destination or non-group selection cannot partially empty source website groups', async (t) => {
+  const db = database(t),
+    a = newRecord({ type: 'website_group', url_list: [url('https://example.com/new')] }),
+    target = newRecord({
+      type: 'website_group',
+      url_list: Array.from({ length: 1000 }, (_, i) => url(`https://example.com/${i}`)),
+    }),
+    note = newRecord({ title: '普通记录' });
+  await db.saveMany([a, target, note].map((record) => ({ record })));
+  await assert.rejects(moveWebsiteGroups(db, [a.id], target.id), /最多 1000/);
+  await assert.rejects(moveWebsiteGroups(db, [a.id, note.id], target.id), /只支持/);
+  assert.equal((await db.get(a.id)).record.url_list.length, 1);
+  assert.equal((await db.get(target.id)).record.url_list.length, 1000);
+});
+test('moving onto an existing URL merges read state, restores a removed destination, and keeps its identity', async (t) => {
+  const db = database(t),
+    item = {
+      ...url('https://example.com/article?utm_source=a'),
+      read_at: new Date().toISOString(),
+    },
+    other = {
+      ...url('https://example.com/article', '目标自定义标题'),
+      removed_at: new Date().toISOString(),
+    },
+    source = newRecord({ type: 'website_group', url_list: [item] }),
+    target = newRecord({ schema_version: 5, type: 'website_group', url_list: [other] });
+  await db.saveMany([source, target].map((record) => ({ record })));
+  assert.deepEqual(await moveWebsite(db, source.id, target.id, item.id), {
+    moved: true,
+    merged: true,
+  });
+  const moved = (await db.get(target.id)).record.url_list;
+  assert.equal(moved.length, 1);
+  assert.equal(moved[0].id, other.id);
+  assert.equal(moved[0].title, other.title);
+  assert.equal(moved[0].read_at, item.read_at);
+  assert.equal(moved[0].removed_at, null);
+});
+test('website moves retry concurrent group edits and never remove the source when target validation fails', async (t) => {
+  const db = database(t),
+    item = url('https://example.com/move'),
+    source = newRecord({ type: 'website_group', url_list: [item] }),
+    target = newRecord({ type: 'website_group' });
+  await db.saveMany([source, target].map((record) => ({ record })));
+  const save = db.saveMany.bind(db);
+  let race = true;
+  db.saveMany = async (changes) => {
+    if (race) {
+      race = false;
+      const current = await db.get(target.id);
+      await save([
+        { record: { ...current.record, title: '并发编辑的标题' }, expectedRev: current.rev },
+      ]);
+    }
+    return save(changes);
+  };
+  await moveWebsite(db, source.id, target.id, item.id);
+  assert.equal((await db.get(target.id)).record.title, '并发编辑的标题');
+  await moveWebsite(db, target.id, source.id, item.id);
+  await db.mutate(target.id, (record) => ({
+    ...record,
+    url_list: Array.from({ length: 1000 }, (_, i) => url(`https://example.com/full/${i}`)),
+  }));
+  await assert.rejects(moveWebsite(db, source.id, target.id, item.id), /最多 1000/);
+  assert.equal((await db.get(source.id)).record.url_list.length, 1);
+  await db.trash(target.id);
+  await assert.rejects(moveWebsite(db, source.id, target.id, item.id), /仍在使用/);
 });
 const sync = (db, cloud) => cloud.sync(db);
 

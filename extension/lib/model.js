@@ -153,7 +153,7 @@ export function normalizeRecord(input) {
     throw new Error('记录必须是 JSON 对象。');
   if (Number.isInteger(input.schema_version) && input.schema_version > SCHEMA_VERSION)
     throw new Error(
-      `记录使用较新的数据格式版本 v${input.schema_version}，请升级 PKM Nexus 后再同步；本机内容仍保留。`,
+      `记录使用较新的数据格式版本 v${input.schema_version}，请升级 GUGA Knowledge 后再同步；本机内容仍保留。`,
     );
   if (![1, 2, 3, 4, 5].includes(input.schema_version) || !validId(input.id))
     throw new Error('记录版本或 ID 不受支持。');
@@ -668,7 +668,7 @@ export function toMarkdown(record) {
         )
         .join('\n\n')
     : '';
-  return `# ${title || '未命名记录'}\n\n<!-- PKM-Nexus metadata\n${JSON.stringify(info, null, 2)}\n-->\n\n${record.purpose ? `保存用途：${record.purpose || ''}\n\n` : ''}${record.type === 'project' && record.summary ? `${record.summary}\n\n` : ''}${record.content}${
+  return `# ${title || '未命名记录'}\n\n<!-- GUGA Knowledge metadata\n${JSON.stringify(info, null, 2)}\n-->\n\n${record.purpose ? `保存用途：${record.purpose || ''}\n\n` : ''}${record.type === 'project' && record.summary ? `${record.summary}\n\n` : ''}${record.content}${
     listBody && !(record.type === 'list' && record.content.trimEnd().endsWith(listBody.trimEnd()))
       ? '\n\n' + listBody
       : ''

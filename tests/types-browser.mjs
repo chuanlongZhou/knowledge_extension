@@ -267,12 +267,25 @@ try {
   pass('四类数据手动同步，另一浏览器按需获取 PNG 快照');
   const zipDownload = side.waitForEvent('download');
   await side.locator('#panel-save-local').click();
+  await side
+    .getByRole('dialog', { name: '选择导出整理方式', exact: true })
+    .getByRole('button', { name: '开始导出', exact: true })
+    .click();
   const zipPath = path.join(output, 'four-types-backup.zip');
   await (await zipDownload).saveAs(zipPath);
   const files = await readZip(new Blob([await readFile(zipPath)]));
   assert.ok(files.has(snapshot.record.attachments[0].path));
-  assert.match(new TextDecoder().decode(files.get(`notes/${list.id}.md`)), /- \[x\] 完成本周整理/);
-  assert.match(new TextDecoder().decode(files.get(`notes/${group.id}.md`)), /Read-three/);
+  const exportIndex = JSON.parse(new TextDecoder().decode(files.get('export-index.json')));
+  assert.match(
+    new TextDecoder().decode(files.get(exportIndex.records.find((r) => r.id === list.id).paths[0])),
+    /- \[x\] 完成本周整理/,
+  );
+  assert.match(
+    new TextDecoder().decode(
+      files.get(exportIndex.records.find((r) => r.id === group.id).paths[0]),
+    ),
+    /Read-three/,
+  );
   pass('完整本地 ZIP 包含快照文件、清单勾选状态及网址组 Markdown');
   await a.context.route('https://types.example/Target-title', (route) =>
     route.fulfill({

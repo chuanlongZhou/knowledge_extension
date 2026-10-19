@@ -1,3 +1,4 @@
+import { t, msg } from './i18n.js';
 import { TYPES, newRecord, upgradeRecord, normalizeRecord, safeUrl } from './model.js';
 import { el, button, field, markdownPreview, assetView } from './dom.js';
 import { mediaComposer } from './media.js';
@@ -41,33 +42,33 @@ export function createEditor(
   const collectedIds = new Set(draftUi.collectedIds || []);
   draftKey ||= row ? `draft:editor:${row.id}` : panel ? 'draft:panel' : 'draft:editor:new';
   const root = el('form', { id: panel ? 'capture-form' : 'editor-form' }),
-    tabs = el('div', { class: 'type-tabs', role: 'tablist', 'aria-label': '收集方式' }),
+    tabs = el('div', { class: 'type-tabs', role: 'tablist', 'aria-label': t('收集方式') }),
     heading = el(
       'strong',
       {},
       row?.rev
-        ? '编辑原记录'
+        ? t('编辑原记录')
         : record.sources.length || record.snapshot
-          ? '编辑捕获记录'
-          : '随手收集',
+          ? t('编辑捕获记录')
+          : t('随手收集'),
     );
   const title = el('input', {
       name: 'title',
       type: 'text',
       value: record.title,
-      placeholder: '标题（可选）',
+      placeholder: t('标题（可选）'),
       maxlength: 500,
     }),
     content = el('textarea', {
       name: 'content',
       maxlength: 1000000,
       rows: panel ? 5 : 9,
-      placeholder: '写下想法，或粘贴图片…',
+      placeholder: t('写下想法，或粘贴图片…'),
     });
   content.value = record.content;
   const source = el('textarea', {
     name: panel ? 'url' : 'urls',
-    placeholder: '来源链接（可选）',
+    placeholder: t('来源链接（可选）'),
     rows: 2,
   });
   source.value = rawUrls ?? record.sources.map((s) => s.url).join('\n');
@@ -75,7 +76,7 @@ export function createEditor(
       name: 'tags',
       type: 'text',
       value: record.tags.join(', '),
-      placeholder: '用逗号分隔',
+      placeholder: t('用逗号分隔'),
     }),
     summary = el('textarea', { name: 'summary', maxlength: 2000, rows: 2 });
   summary.value = record.summary;
@@ -84,13 +85,21 @@ export function createEditor(
       type: 'checkbox',
       checked: record.organization_state === 'organized',
     }),
-    status = el('small', { class: 'muted' }, row?.rev ? '修改保留原 ID' : '输入自动保存为本机草稿'),
+    status = el(
+      'small',
+      { class: 'muted' },
+      row?.rev ? t('修改保留原 ID') : t('输入自动保存为本机草稿'),
+    ),
     error = el('div', { class: 'error-text', role: 'alert' });
   const preview = el('div', { hidden: true }),
     media = mediaComposer(db, content, {
       attachments: record.attachments,
       onChange: () => {
         dirty = true;
+        if (previewing) {
+          preview.querySelector('.markdown')?.dispose?.();
+          preview.replaceChildren(markdownPreview(content.value, media.preview()));
+        }
         return flush();
       },
     }),
@@ -102,15 +111,15 @@ export function createEditor(
     'button',
     { type: 'submit', class: 'button primary' },
     row?.rev
-      ? '保存修改'
+      ? t('保存修改')
       : record.type === 'list'
-        ? '保存清单'
+        ? t('保存清单')
         : panel
-          ? '保存到收件箱'
-          : '保存到本机',
+          ? t('保存到收件箱')
+          : t('保存到本机'),
   );
   const previewButton = button(
-    '预览',
+    t('预览'),
     () => {
       previewing = !previewing;
       content.hidden = previewing;
@@ -118,14 +127,14 @@ export function createEditor(
       media.root.querySelector('.media-gallery').hidden = previewing;
       preview.querySelector('.markdown')?.dispose?.();
       if (previewing) preview.replaceChildren(markdownPreview(content.value, media.preview()));
-      previewButton.textContent = previewing ? '编辑' : '预览';
+      previewButton.textContent = previewing ? t('编辑') : t('预览');
       changed();
     },
     'link-button',
   );
   let pendingAccess;
   const accessDescription = el('p', { class: 'description' }),
-    accessButton = button('允许访问此网站并重试', async () => {
+    accessButton = button(t('允许访问此网站并重试'), async () => {
       const access = pendingAccess;
       if (!access || disposed) return;
       error.textContent = '';
@@ -136,12 +145,12 @@ export function createEditor(
         const granted = await chrome.permissions.request({ origins: access.origins });
         if (disposed) return;
         if (!granted) {
-          error.textContent = '未获得网站授权。可再次点击授权，也可以手动粘贴内容。';
+          error.textContent = t('未获得网站授权。可再次点击授权，也可以手动粘贴内容。');
           return;
         }
         await capturePage(access);
       } catch (e) {
-        error.textContent = `网站授权失败：${e.message}。可以手动粘贴内容。`;
+        error.textContent = msg`网站授权失败：${e.message}。可以手动粘贴内容。`;
       } finally {
         accessButton.disabled = false;
         captureButton.disabled = false;
@@ -153,7 +162,7 @@ export function createEditor(
       accessDescription,
       accessButton,
     ),
-    captureButton = button('捕获当前网页', () => capturePage(), 'link-button');
+    captureButton = button(t('捕获当前网页'), () => capturePage(), 'link-button');
   function resetAccess() {
     pendingAccess = null;
     accessNotice.hidden = true;
@@ -163,7 +172,7 @@ export function createEditor(
     resetAccess();
     captureButton.disabled = true;
     try {
-      if (media.recording) throw new Error('请先停止录音，再捕获网页。');
+      if (media.recording) throw new Error(t('请先停止录音，再捕获网页。'));
       await flush();
       const response = await chrome.runtime.sendMessage({
         type: 'capture-active',
@@ -175,14 +184,16 @@ export function createEditor(
         if (response?.access) {
           pendingAccess = response.access;
           accessDescription.textContent = pendingAccess.snapshot
-            ? 'Chrome 的页面截图接口需要所有网站访问权限，或通过点击工具栏扩展图标取得当前页临时权限。授权只用于你主动触发的捕获；也可回到网页点击扩展图标后重试。'
-            : `读取 ${pendingAccess.site} 的选中文字需要访问该网站。点击下方按钮，在 Chrome 中确认后自动重试。也可回到网页点击工具栏扩展图标后重试。`;
+            ? t(
+                'Chrome 的页面截图接口需要所有网站访问权限，或通过点击工具栏扩展图标取得当前页临时权限。授权只用于你主动触发的捕获；也可回到网页点击扩展图标后重试。',
+              )
+            : msg`读取 ${pendingAccess.site} 的选中文字需要访问该网站。点击下方按钮，在 Chrome 中确认后自动重试。也可回到网页点击工具栏扩展图标后重试。`;
           accessButton.textContent = pendingAccess.snapshot
-            ? '允许所有网站访问并重试截图'
-            : '允许访问此网站并重试';
+            ? t('允许所有网站访问并重试截图')
+            : t('允许访问此网站并重试');
           accessNotice.hidden = false;
         }
-        throw new Error(response?.error || '捕获失败。');
+        throw new Error(response?.error || t('捕获失败。'));
       }
       await onNavigate('capture', response.result.record);
     } catch (e) {
@@ -195,17 +206,17 @@ export function createEditor(
     el(
       'div',
       { class: 'editor-toolbar' },
-      el('span', { class: 'field-label' }, '内容 · Markdown'),
+      el('span', { class: 'field-label' }, t('内容 · Markdown')),
       previewButton,
     ),
     content,
     preview,
     media.root,
-    field('来源', source),
+    field(t('来源'), source),
   );
   const snapshotDisplay = el('div', { class: 'snapshot-display' });
   snapshotPane.append(
-    el('p', { class: 'description' }, '截取当前网页可见区域的页面图片，并保留来源链接。'),
+    el('p', { class: 'description' }, t('截取当前网页可见区域的页面图片，并保留来源链接。')),
     snapshotDisplay,
   );
   function renderSnapshot() {
@@ -215,7 +226,7 @@ export function createEditor(
       const descriptor = media.attachments.find((a) => a.id === snapshot.asset_id);
       if (snapshot.format === 'mhtml')
         snapshotDisplay.append(
-          el('small', { class: 'muted' }, '旧版网页文件已保留，新快照使用页面图片。'),
+          el('small', { class: 'muted' }, t('旧版网页文件已保留，新快照使用页面图片。')),
         );
       snapshotDisplay.append(
         el(
@@ -231,7 +242,7 @@ export function createEditor(
       );
     } else
       snapshotDisplay.append(
-        el('p', { class: 'muted' }, '尚未捕获快照，请打开目标网页后点击“捕获当前网页”。'),
+        el('p', { class: 'muted' }, t('尚未捕获快照，请打开目标网页后点击“捕获当前网页”。')),
       );
   }
   function changed() {
@@ -246,8 +257,8 @@ export function createEditor(
   const listEntry = el('input', {
     type: 'text',
     maxlength: 5000,
-    'aria-label': '添加清单项',
-    placeholder: '写一项，按 Enter 添加；输入 --- 添加分隔线',
+    'aria-label': t('添加清单项'),
+    placeholder: t('写一项，按 Enter 添加；输入 --- 添加分隔线'),
   });
   listEntry.addEventListener('input', () => {
     pendingEntries[listMode] = listEntry.value;
@@ -271,12 +282,12 @@ export function createEditor(
   const listMd = el('textarea', {
     name: 'list_markdown',
     rows: 10,
-    'aria-label': '清单 Markdown',
-    placeholder: '- [ ] 写下一项待办\n- [x] 已完成\n---',
+    'aria-label': t('清单 Markdown'),
+    placeholder: t('- [ ] 写下一项待办\n- [x] 已完成\n---'),
   });
   const listModes = el(
     'div',
-    { class: 'list-modes', role: 'tablist', 'aria-label': '清单模式' },
+    { class: 'list-modes', role: 'tablist', 'aria-label': t('清单模式') },
     ...[
       [true, 'Todo'],
       [false, 'Idea'],
@@ -303,8 +314,8 @@ export function createEditor(
     listMd.value = listMarkdown(items, listMode);
     listEntry.value = pendingEntries[listMode];
     listEntry.placeholder = listMode
-      ? '写一项，按 Enter 生成待办；--- 添加分隔线'
-      : '写一个想法，按 Enter 添加；--- 添加分隔线';
+      ? t('写一项，按 Enter 生成待办；--- 添加分隔线')
+      : t('写一个想法，按 Enter 添加；--- 添加分隔线');
     listRows.replaceChildren(
       ...items
         .filter((item) => item.is_checkbox === listMode)
@@ -318,14 +329,14 @@ export function createEditor(
             },
             'icon-button',
           );
-          remove.setAttribute('aria-label', `删除清单项 ${item.text || '分隔线'}`);
+          remove.setAttribute('aria-label', msg`删除清单项 ${item.text || t('分隔线')}`);
           if (item.kind === 'divider')
             return el('div', { class: 'list-composer-row' }, el('hr'), remove);
           const text = el('input', {
             type: 'text',
             value: item.text,
             maxlength: 5000,
-            'aria-label': `清单内容 ${item.text}`,
+            'aria-label': msg`清单内容 ${item.text}`,
           });
           text.addEventListener('input', () => {
             item.text = text.value;
@@ -341,7 +352,7 @@ export function createEditor(
             ? el('input', {
                 type: 'checkbox',
                 checked: item.checked,
-                'aria-label': `完成 ${item.text}`,
+                'aria-label': msg`完成 ${item.text}`,
                 onchange: (e) => {
                   item.checked = e.target.checked;
                   text.classList.toggle('completed', item.checked);
@@ -355,8 +366,8 @@ export function createEditor(
         }),
     );
     listMd.placeholder = listMode
-      ? '- [ ] 写下一项待办\n- [x] 已完成\n---'
-      : '- 写下一条想法\n- 另一条想法\n---';
+      ? t('- [ ] 写下一项待办\n- [x] 已完成\n---')
+      : t('- 写下一条想法\n- 另一条想法\n---');
   }
   listMd.addEventListener('input', () => {
     items = parseListMarkdown(listMd.value, listMode, items);
@@ -370,18 +381,20 @@ export function createEditor(
     el(
       'p',
       { class: 'description' },
-      '逐行输入，按 Enter 添加。Todo 自动生成复选框，Idea 生成条目；--- 生成分隔线。内容保存为 Markdown。',
+      t(
+        '逐行输入，按 Enter 添加。Todo 自动生成复选框，Idea 生成条目；--- 生成分隔线。内容保存为 Markdown。',
+      ),
     ),
     listRows,
     listEntry,
-    el('details', { class: 'list-source' }, el('summary', {}, 'Markdown 源码'), listMd),
+    el('details', { class: 'list-source' }, el('summary', {}, t('Markdown 源码')), listMd),
   );
   const urlRows = el('div', { class: 'url-editor' }),
-    urlInput = el('input', { type: 'url', name: 'website_url', placeholder: '粘贴网页链接' }),
+    urlInput = el('input', { type: 'url', name: 'website_url', placeholder: t('粘贴网页链接') }),
     urlTitle = el('input', {
       type: 'text',
       name: 'website_title',
-      placeholder: '网页标题（可选）',
+      placeholder: t('网页标题（可选）'),
     }),
     closeTabs = el('input', {
       type: 'checkbox',
@@ -391,14 +404,14 @@ export function createEditor(
     dropZone = el(
       'div',
       { class: 'website-drop-zone', tabindex: 0 },
-      '拖入网页中的链接，或从插件列表拖入',
+      t('拖入网页中的链接，或从插件列表拖入'),
     ),
     tabDrawer = el('div', { class: 'tab-drawer', hidden: true });
   function renderUrls() {
     urlRows.replaceChildren(
       ...urls.map((item) => {
         const remove = button(
-          item.removed_at ? '恢复' : icon('trash'),
+          item.removed_at ? t('恢复') : icon('trash'),
           () => {
             item.removed_at = item.removed_at ? null : new Date().toISOString();
             renderUrls();
@@ -408,7 +421,7 @@ export function createEditor(
         );
         remove.setAttribute(
           'aria-label',
-          `${item.removed_at ? '恢复' : '删除'}网页 ${item.title || '网页'}`,
+          msg`${item.removed_at ? t('恢复') : t('删除')}网页 ${item.title || t('网页')}`,
         );
         return el(
           'div',
@@ -418,7 +431,7 @@ export function createEditor(
           el('input', {
             type: 'checkbox',
             checked: !!item.read_at,
-            'aria-label': `已读 ${item.title || item.url}`,
+            'aria-label': msg`已读 ${item.title || item.url}`,
             onchange: (e) => {
               item.read_at = e.target.checked ? new Date().toISOString() : null;
               changed();
@@ -436,25 +449,25 @@ export function createEditor(
     pendingTabs.push(...tabs);
     renderUrls();
     changed();
-    status.textContent = `已加入 ${values.length} 个网页，保存成功后才关闭标签页。`;
+    status.textContent = msg`已加入 ${values.length} 个网页，保存成功后才关闭标签页。`;
   }
   async function chooseTabs(persist = true) {
     tabDrawer.hidden = false;
     if (persist) changed();
-    tabDrawer.replaceChildren(el('small', { class: 'muted' }, '读取已打开网页…'));
+    tabDrawer.replaceChildren(el('small', { class: 'muted' }, t('读取已打开网页…')));
     const values = await openWebsiteTabs(),
       selected = selectedTabIds,
-      all = el('input', { type: 'checkbox', 'aria-label': '选择全部标签页' }),
+      all = el('input', { type: 'checkbox', 'aria-label': t('选择全部标签页') }),
       rows = [];
     if (disposed) return;
     for (const id of selected) if (!values.some((tab) => tab.id === id)) selected.delete(id);
     all.checked = !!values.length && selected.size === values.length;
-    const master = el('label', { class: 'checkbox-line' }, all, '选择全部（固定标签页保留）');
+    const master = el('label', { class: 'checkbox-line' }, all, t('选择全部（固定标签页保留）'));
     for (const tab of values) {
       const input = el('input', {
           type: 'checkbox',
           checked: selected.has(tab.id),
-          'aria-label': `选择标签页 ${tab.title}`,
+          'aria-label': msg`选择标签页 ${tab.title}`,
           onchange: () => {
             input.checked ? selected.add(tab.id) : selected.delete(tab.id);
             all.checked = selected.size === values.length;
@@ -466,7 +479,7 @@ export function createEditor(
           { class: 'tab-row', draggable: true, 'data-tab-id': tab.id },
           input,
           websiteLabel(tab),
-          el('span', {}, '拖入 ↘'),
+          el('span', {}, t('拖入 ↘')),
         );
       node.addEventListener('dragstart', (e) => {
         const dragged = selected.has(tab.id) ? values.filter((v) => selected.has(v.id)) : [tab];
@@ -485,11 +498,11 @@ export function createEditor(
       changed();
     });
     const addSelected = button(
-      '加入所选网页',
+      t('加入所选网页'),
       () => {
         const chosen = values.filter((t) => selected.has(t.id));
         if (!chosen.length) {
-          status.textContent = '请先选择网页。';
+          status.textContent = t('请先选择网页。');
           return;
         }
         tabDrawer.hidden = true;
@@ -501,7 +514,7 @@ export function createEditor(
     tabDrawer.replaceChildren(
       el('div', { class: 'tab-drawer-actions' }, addSelected, master),
       ...rows.map((r) => r.node),
-      ...(!values.length ? [el('p', {}, '这个窗口没有可归类的网页。')] : []),
+      ...(!values.length ? [el('p', {}, t('这个窗口没有可归类的网页。'))] : []),
     );
   }
   dropZone.addEventListener('dragover', (e) => {
@@ -513,11 +526,11 @@ export function createEditor(
   dropZone.addEventListener('drop', async (e) => {
     e.preventDefault();
     dropZone.classList.remove('drag-over');
-    status.textContent = '正在读取链接标题…';
+    status.textContent = t('正在读取链接标题…');
     try {
       const result = await droppedWebsites(e.dataTransfer);
       if (!result.items.length)
-        throw new Error('没有识别到网页链接。请从网页中拖动链接，或使用“选择已打开网页”。');
+        throw new Error(t('没有识别到网页链接。请从网页中拖动链接，或使用“选择已打开网页”。'));
       addUrls(result.items, result.tabs);
     } catch (err) {
       error.textContent = err.message;
@@ -527,7 +540,9 @@ export function createEditor(
     el(
       'p',
       { class: 'description' },
-      '多选已打开网页批量归组。请勿从浏览器顶部标签栏拖入，那会变成新窗口。未授权读取标题时显示网站域名，链接仍可保存，也可自行填写标题。',
+      t(
+        '多选已打开网页批量归组。请勿从浏览器顶部标签栏拖入，那会变成新窗口。未授权读取标题时显示网站域名，链接仍可保存，也可自行填写标题。',
+      ),
     ),
     el(
       'div',
@@ -535,11 +550,11 @@ export function createEditor(
       urlInput,
       urlTitle,
       button(
-        '加入链接',
+        t('加入链接'),
         async () => {
           try {
-            if (!safeUrl(urlInput.value)) throw new Error('请输入 HTTP / HTTPS 链接。');
-            status.textContent = '正在读取网页标题…';
+            if (!safeUrl(urlInput.value)) throw new Error(t('请输入 HTTP / HTTPS 链接。'));
+            status.textContent = t('正在读取网页标题…');
             const url = urlInput.value;
             const title = urlTitle.value.trim() || (await websiteTitle(url));
             if (disposed) return;
@@ -556,13 +571,13 @@ export function createEditor(
       ),
     ),
     button(
-      '选择已打开网页',
+      t('选择已打开网页'),
       () => chooseTabs().catch((e) => (error.textContent = e.message)),
       'button small',
     ),
     tabDrawer,
     dropZone,
-    el('label', { class: 'checkbox-line' }, closeTabs, '保存后关闭加入的标签页'),
+    el('label', { class: 'checkbox-line' }, closeTabs, t('保存后关闭加入的标签页')),
     urlRows,
   );
   const panes = {
@@ -573,7 +588,7 @@ export function createEditor(
   };
   for (const [type, label] of Object.entries(TYPES)) {
     const tab = button(
-      label,
+      t(label),
       async () => {
         if (type === record.type) {
           if (type === 'list') {
@@ -583,7 +598,7 @@ export function createEditor(
           return;
         }
         if (media.recording) {
-          error.textContent = '请先停止录音。';
+          error.textContent = t('请先停止录音。');
           return;
         }
         await flush();
@@ -608,9 +623,9 @@ export function createEditor(
   const extra = el(
     'div',
     { class: 'editor-extra' },
-    field('标签', tags),
-    field('人工总结（可选）', summary),
-    el('label', { class: 'checkbox-line' }, organization, '已整理'),
+    field(t('标签'), tags),
+    field(t('人工总结（可选）'), summary),
+    el('label', { class: 'checkbox-line' }, organization, t('已整理')),
   );
   extra.hidden = panel;
   root.classList.toggle('simple-editor', simple);
@@ -627,10 +642,10 @@ export function createEditor(
       { class: 'editor-save row' },
       save,
       button(
-        panel ? (row?.rev ? '取消编辑' : '清空') : '取消',
+        panel ? (row?.rev ? t('取消编辑') : t('清空')) : t('取消'),
         async () => {
           if (media.recording) {
-            error.textContent = '请先停止录音。';
+            error.textContent = t('请先停止录音。');
             return;
           }
           if (panel) {
@@ -669,10 +684,10 @@ export function createEditor(
           : title.value.trim() ||
             content.value.trim().slice(0, 60) ||
             (record.type === 'website_group'
-              ? '待读网页'
+              ? t('待读网页')
               : record.type === 'list'
                 ? ''
-                : snapshot?.title || sources[0]?.url || '未命名记录'),
+                : snapshot?.title || sources[0]?.url || t('未命名记录')),
       content:
         record.type === 'list' ? listDocument(items, record.content, record.list) : content.value,
       summary: summary.value,
@@ -741,7 +756,7 @@ export function createEditor(
       dirty = true;
       throw error;
     }
-    status.textContent = '草稿已保存到本机';
+    status.textContent = t('草稿已保存到本机');
   }
   root.addEventListener('input', changed);
   root.addEventListener('submit', async (e) => {
@@ -750,12 +765,13 @@ export function createEditor(
     save.disabled = true;
     clearTimeout(timer);
     try {
-      if (media.recording) throw new Error('请先停止录音。');
+      if (media.recording) throw new Error(t('请先停止录音。'));
+      await media.settle();
       if (record.type === 'list') commitEntry();
       const value = normalizeRecord(values());
-      if (value.type === 'snapshot' && !value.snapshot) throw new Error('请先捕获网页快照。');
+      if (value.type === 'snapshot' && !value.snapshot) throw new Error(t('请先捕获网页快照。'));
       if (value.type === 'website_group' && !value.url_list.length)
-        throw new Error('请先加入网页。');
+        throw new Error(t('请先加入网页。'));
       if (
         value.type === 'note' &&
         !content.value.trim() &&
@@ -763,16 +779,16 @@ export function createEditor(
         !value.sources.length &&
         !value.attachments.length
       )
-        throw new Error('请填写记录或添加图片、录音。');
+        throw new Error(t('请填写记录或添加图片、录音。'));
       saving = true;
       const result = await onSave(value, row);
       if (result?.status === 'duplicate') {
-        status.textContent = '发现相关记录，已保留到待处理收集；标签页没有关闭。';
+        status.textContent = t('发现相关记录，已保留到待处理收集；标签页没有关闭。');
         pendingTabs = [];
       } else if (closeTabs.checked && pendingTabs.length) {
         const closed = await closeCapturedTabs(pendingTabs, value);
-        status.textContent = `已保存并关闭 ${closed.closed.length} 个标签页${closed.skipped.length ? '；导航变化或无法关闭的标签页已保留' : ''}`;
-      } else status.textContent = '已保存到本机，等待同步。';
+        status.textContent = msg`已保存并关闭 ${closed.closed.length} 个标签页${closed.skipped.length ? t('；导航变化或无法关闭的标签页已保留') : ''}`;
+      } else status.textContent = t('已保存到本机，等待同步。');
       await clearDraft(db, draftKey);
       if (closeSourceKey) await db.setState(closeSourceKey, null);
       disposed = true;
@@ -794,7 +810,7 @@ export function createEditor(
     title.hidden = record.type === 'list' || simple;
     heading.hidden = record.type === 'list';
     captureButton.hidden = !['note', 'snapshot'].includes(record.type);
-    captureButton.textContent = record.type === 'snapshot' ? '捕获网页快照' : '捕获当前网页';
+    captureButton.textContent = record.type === 'snapshot' ? t('捕获网页快照') : t('捕获当前网页');
     renderSnapshot();
     renderList();
     renderUrls();

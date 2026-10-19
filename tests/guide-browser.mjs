@@ -28,7 +28,10 @@ try {
   await page.locator('#manual').click();
   const manual = await opened;
   await manual.waitForURL('**/manual.html');
-  await manual.getByRole('heading', { name: 'PKM Nexus 0.8.0 使用说明书', exact: true }).waitFor();
+  const version = await worker.evaluate(() => chrome.runtime.getManifest().version);
+  await manual
+    .getByRole('heading', { name: `GUGA Knowledge ${version} 使用说明书`, exact: true })
+    .waitFor();
   assert.match(await manual.locator('#guide-content').innerText(), /登录自己的 Google Drive/);
   assert.doesNotMatch(
     await manual.locator('#guide-content').innerText(),
