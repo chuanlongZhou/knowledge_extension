@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.2 商店版 Google 登录修复
+
+- 将 Chrome 扩展 OAuth 客户端换成发布者提供、用于商店扩展 ID `hmlcjcejioggaegkahdnbgpnajchhlbl` 的客户端 ID，并提高版本号以便更新现有商店条目。开发目录采用商店公钥，使本地解压版 ID 与商店版一致；商店 ZIP 继续移除 `key`。Google Cloud 中的客户端类型和 Item ID 以及真实账号授权仍须发布者确认。
+
 ## 0.9.1 上架前修复
 
 - 商店上传 ZIP 不再包含被上传页面拒绝的 `manifest.key`；本地解压开发目录仍保留固定 ID 公钥。发行包测试检查 ZIP 根目录清单中无该字段。

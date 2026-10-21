@@ -39,7 +39,7 @@ try {
   await dialog.getByLabel('项目颜色', { exact: true }).fill('#2764b7');
   assert.equal(await dialog.getByText('关键词', { exact: false }).count(), 0);
   await dialog.getByRole('button', { name: '保存项目', exact: true }).click();
-  await page.locator('#projects-nav .project-nav').first().getByRole('button').first().click();
+  await page.locator('#projects-nav .project-nav').first().locator(':scope > .link-button').click();
   await page.getByRole('button', { name: '新建子项目', exact: true }).click();
   dialog = page.getByRole('dialog', { name: '新建项目', exact: true });
   await dialog.getByLabel('项目名称', { exact: true }).fill('实验资料');
@@ -99,8 +99,7 @@ try {
     return { parent, child, a: a.id, b: b.id, c: c.id, group: group.id, snapshot: snapshot.id };
   });
   const card = (id) => page.locator(`#records [data-record-id="${id}"]`);
-  const projectNav = (id) =>
-    page.locator(`#projects-nav [data-project-id="${id}"]`).getByRole('button').first();
+  const projectNav = (id) => page.locator(`#projects-nav [data-project-id="${id}"] > .link-button`);
   await projectNav(ids.parent).click();
   await card(ids.a).waitFor();
   assert.match(await page.locator('#description').innerText(), /汇总实验资料/);
@@ -116,6 +115,43 @@ try {
     utility: document.querySelector('#utility-nav').getBoundingClientRect().top,
   }));
   assert.ok(positions.projects < positions.tags && positions.tags < positions.utility);
+  const splitter = page.locator('#sidebar-splitter');
+  await splitter.focus();
+  await splitter.press('ArrowDown');
+  assert.equal(await splitter.getAttribute('aria-valuenow'), '60');
+  await page.reload();
+  await page.locator('#heading').waitFor();
+  assert.equal(await splitter.getAttribute('aria-valuenow'), '60');
+  const toolToggle = page.locator('#toggle-utility');
+  await toolToggle.click();
+  assert.equal(await toolToggle.getAttribute('aria-expanded'), 'false');
+  assert.equal(await page.locator('#utility-nav').isVisible(), false);
+  assert.equal(await page.locator('#settings').isVisible(), true);
+  await page.reload();
+  await page.locator('#heading').waitFor();
+  assert.equal(await toolToggle.getAttribute('aria-expanded'), 'false');
+  await toolToggle.click();
+  assert.equal(await page.locator('#utility-nav').isVisible(), true);
+  assert.equal(
+    await page.locator('#projects-nav').evaluate((node) => getComputedStyle(node).overflowY),
+    'auto',
+  );
+  const parentBranch = page.locator(`#projects-nav [data-project-id="${ids.parent}"]`);
+  assert.equal(
+    await parentBranch.locator(':scope > :first-child').getAttribute('class'),
+    'project-toggle',
+  );
+  await parentBranch.locator('.project-toggle').click();
+  assert.equal(
+    await page.locator(`#projects-nav [data-project-id="${ids.child}"]`).isVisible(),
+    false,
+  );
+  await parentBranch.locator('.project-toggle').click();
+  assert.equal(
+    await page.locator(`#projects-nav [data-project-id="${ids.child}"]`).isVisible(),
+    true,
+  );
+  pass('项目折叠按钮位于名称前，项目与标签分区可调整高度并保留设置');
   assert.equal(
     await page.locator('#nav').getByRole('button', { name: '☷　清单', exact: true }).count(),
     0,
@@ -159,9 +195,9 @@ try {
   await dialog.getByText('直接修改 Markdown 后的正文。', { exact: true }).waitFor();
   await dialog.getByRole('button', { name: '完整修改', exact: true }).click();
   dialog = page.getByRole('dialog', { name: '编辑记录', exact: true });
-  await dialog.locator('[name=tags]').waitFor();
+  await dialog.getByLabel('选择标签或输入新标签', { exact: true }).waitFor();
   assert.equal(await dialog.locator('.type-tabs').isVisible(), false);
-  assert.equal(await dialog.locator('[name=tags]').isVisible(), true);
+  assert.equal(await dialog.getByLabel('选择标签或输入新标签', { exact: true }).isVisible(), true);
   await dialog.getByRole('button', { name: '取消', exact: true }).click();
   await card(ids.a).getByRole('button', { name: '☆ 喜爱', exact: true }).click();
   await page.locator('[data-view=favorites]').click();
@@ -179,7 +215,21 @@ try {
   await card(ids.group).locator('.website-preview-line.removed').waitFor();
   await card(ids.group).getByRole('button', { name: '恢复网页 参考材料', exact: true }).click();
   await card(ids.group).locator('.website-preview-line:not(.removed)').waitFor();
-  await card(ids.snapshot).locator('.asset-view img').waitFor();
+  await card(ids.snapshot).locator('.asset-image-only img').waitFor();
+  const snapshotLayout = await card(ids.snapshot).evaluate((node) => ({
+    imageWidth: node.querySelector('.asset-image-only img').getBoundingClientRect().width,
+    contentWidth: node.querySelector('.record-main').getBoundingClientRect().width,
+    caption: node.querySelector('.asset-image-only small').textContent.trim(),
+    controlsHidden:
+      getComputedStyle(node.querySelector('.asset-image-only .row')).display === 'none',
+    hasImageCount: [...node.querySelectorAll('.record-top .badge')].some((badge) =>
+      /图片 ·/.test(badge.textContent),
+    ),
+  }));
+  assert.ok(snapshotLayout.imageWidth >= snapshotLayout.contentWidth * 0.9);
+  assert.equal(snapshotLayout.caption, '');
+  assert.equal(snapshotLayout.controlsHidden, true);
+  assert.equal(snapshotLayout.hasImageCount, false);
   await page.locator('[data-view=duplicates]').click();
   await page.waitForFunction(() => document.querySelector('#heading')?.textContent === '重复检查');
   assert.equal(await page.locator('#new').isVisible(), false);

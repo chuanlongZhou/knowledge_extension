@@ -271,6 +271,7 @@ try {
     'Todo/Idea 回车直接生成条目与分隔线，待输入内容跨刷新恢复，保存仍保留清单类型；底层 Markdown 与导出不重复',
   );
   await page.bringToFront();
+  await page.locator('#settings').click();
   await page.locator('#theme').click();
   dialog = page.getByRole('dialog', { name: '主题与字体', exact: true });
   await dialog.getByLabel('主题', { exact: true }).selectOption('dark');
@@ -314,6 +315,10 @@ try {
   await dialog.getByRole('button', { name: '恢复默认', exact: true }).click();
   await dialog.getByRole('button', { name: '保存主题', exact: true }).click();
   pass('取消主题预览恢复已保存设置，恢复默认可独立保存');
+  await page
+    .getByRole('dialog', { name: '设置与数据管理', exact: true })
+    .getByRole('button', { name: '关闭', exact: true })
+    .click();
   const projectNav = page.locator(`#projects-nav [data-project-id="${ids.parent}"]`);
   await projectNav.getByRole('button').last().click();
   dialog = page.getByRole('dialog', { name: '编辑项目', exact: true });
@@ -321,7 +326,7 @@ try {
   await dialog.getByRole('button', { name: '图标 🔬', exact: true }).click();
   await dialog.getByRole('button', { name: '项目颜色 #2764b7', exact: true }).click();
   await dialog.getByRole('button', { name: '保存项目', exact: true }).click();
-  await projectNav.getByRole('button').first().click();
+  await projectNav.locator(':scope > .link-button').click();
   await page.getByRole('button', { name: '关系图', exact: true }).click();
   dialog = page.getByRole('dialog', { name: '项目关系图 · 主题测试项目', exact: true });
   await dialog.getByRole('button', { name: '全屏', exact: true }).click();

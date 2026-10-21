@@ -35,6 +35,7 @@ import {
   prepareShortcutLibrary,
   writeShortcutLibrary,
 } from './shortcut-library.js';
+import { t } from './i18n.js';
 
 const request = (req) =>
   new Promise((resolve, reject) => {
@@ -215,6 +216,44 @@ export class Database {
         .getAll(IDBKeyRange.bound('drive:row:', 'drive:row:\uffff')),
     );
     return new Map(rows.map((r) => [r.key.slice('drive:row:'.length), r.value]));
+  }
+  async changeDriveBinding(expected, binding) {
+    const db = await this.open();
+    const tx = db.transaction(['state', 'driveCache'], 'readwrite');
+    const done = completed(tx);
+    const state = tx.objectStore('state');
+    let error;
+    const current = state.get('drive:binding');
+    current.onsuccess = () => {
+      const value = current.result?.value;
+      if (
+        !value ||
+        value.accountId !== expected.accountId ||
+        value.folderId !== expected.folderId
+      ) {
+        error = new Error(t('数据文件夹已在其他窗口改变，请重新打开设置。'));
+        tx.abort();
+        return;
+      }
+      state.put({ key: 'drive:binding', value: binding });
+      for (const key of ['drive:conflicts', 'drive:resolutions', 'drive:last', 'drive:error'])
+        state.delete(key);
+      const cursor = state.openCursor(IDBKeyRange.bound('drive:row:', 'drive:row:\uffff'));
+      cursor.onsuccess = () => {
+        const row = cursor.result;
+        if (!row) return;
+        row.delete();
+        row.continue();
+      };
+      tx.objectStore('driveCache').clear();
+    };
+    try {
+      await done;
+    } catch (cause) {
+      throw error || cause;
+    }
+    this.changed('state');
+    return binding;
   }
   async cachedDriveFile(id) {
     const db = await this.open();

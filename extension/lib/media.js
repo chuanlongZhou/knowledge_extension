@@ -2,7 +2,11 @@ import { t, msg } from './i18n.js';
 import { el, button, assetView } from './dom.js';
 import { ensureMicrophonePermission } from './microphone.js';
 import { loadAsset } from './assets.js';
-export function mediaComposer(db, textarea, { attachments = [], onChange = async () => {} } = {}) {
+export function mediaComposer(
+  db,
+  textarea,
+  { attachments = [], onChange = async () => {}, selection } = {},
+) {
   const descriptors = new Map(attachments.map((a) => [a.id, a])),
     root = el('div', { class: 'media-composer' }),
     toolbar = el('div', { class: 'media-toolbar row' }),
@@ -57,8 +61,9 @@ export function mediaComposer(db, textarea, { attachments = [], onChange = async
     descriptors.set(descriptor.id, descriptor);
     const label = descriptor.name.replace(/[\[\]\\\r\n]/g, '');
     const snippet = `${descriptor.kind === 'image' ? '!' : ''}[${label}](${descriptor.path})`;
-    const start = textarea.selectionStart ?? textarea.value.length,
-      end = textarea.selectionEnd ?? start;
+    const range = selection?.();
+    const start = range?.from ?? textarea.selectionStart ?? textarea.value.length,
+      end = range?.to ?? textarea.selectionEnd ?? start;
     textarea.setRangeText(`${start ? '\n\n' : ''}${snippet}\n`, start, end, 'end');
     render();
     await changed();
@@ -119,7 +124,9 @@ export function mediaComposer(db, textarea, { attachments = [], onChange = async
     if (files.length) {
       event.preventDefault();
       guarded(() => addFiles(files))();
+      return true;
     }
+    return false;
   };
   textarea.addEventListener('paste', onPaste);
   const recordButton = button(
@@ -228,6 +235,7 @@ export function mediaComposer(db, textarea, { attachments = [], onChange = async
   render();
   return {
     root,
+    handlePaste: onPaste,
     get attachments() {
       return [...descriptors.values()];
     },

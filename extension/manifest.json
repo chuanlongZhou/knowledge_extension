@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "GUGA Knowledge · 个人知识收件箱",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "快捷收集、离线整理，直接同步到自己的 Google Drive，随时导出备份。",
   "minimum_chrome_version": "120",
   "icons": {
@@ -21,7 +21,9 @@
     "favicon",
     "identity"
   ],
-  "host_permissions": ["https://www.googleapis.com/*"],
+  "host_permissions": [
+    "https://www.googleapis.com/*"
+  ],
   "background": {
     "service_worker": "background.js",
     "type": "module"
@@ -55,11 +57,15 @@
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'self' https: http:; img-src 'self' data: blob: https: http:; media-src 'self' blob:; style-src 'self'; base-uri 'none'"
   },
-  "optional_host_permissions": ["<all_urls>"],
+  "optional_host_permissions": [
+    "<all_urls>"
+  ],
   "oauth2": {
-    "client_id": "464495637351-vaslclbq0t7oa5ratt3dchdv3t626dhu.apps.googleusercontent.com",
-    "scopes": ["https://www.googleapis.com/auth/drive.file"]
+    "client_id": "464495637351-ulankmfceruj8je46nlgugq703kmp4c5.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/drive.file"
+    ]
   },
-  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA6zHBtL8tX9fy8VJ91Em3LQg+5i1ujneWQhwsqrr9Fuitj1XzcYnCZHNCKeSgfEHFVFEvtb+sBzVwKMCyoRgQvGrKJ4AeDJUg9TfkcxE4yWmvkSmOyiYayqXur2BOkMrxdGBalTJ0gXt0BhrjEFN+xcCbCi+C77//CHN1rx9aLQ7y8LI3a/3ZLRNNeZvuaeX9suidDcL8W3cJnrTFhxOGlL9Y4TB/7GogXCdHEN3+XfeT1P6SqdKXYvu0q9WAwJcOb0cNphS0sJ4H5gFELgPt9dIc146GzLkf9Mb5suVnmmTAPRSdIgmJW/L/B0TBSIM24+rUheDUfIJJvPb+cGZwzwIDAQAB",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnhEJ6kEigKM2A6KP+oRcuw7v8h435m0YFoR7eydxmoftbkfUlsTdV30eJpiYcqDKQDIRYJjxArhSkHIh2C5Pm8z/LsPpxRZ7rZslAB94Rp5VGPgOxgWosQbpLib6OkHKqSEd/2/V6bsAXxFwpmmhJJv9tAOkLdv8EM9fakUjKRU80j8t64Rlm8bnip+TcowWa8AfBQUdLPkd1l0JyWkqAhcgy48ZBGAiRGih08DY3X2UBqENV6l+kOC1/8PQhnD+IJXrUW4WJi36L9BqTcGCxz7jbgmtgc4HeowPQzHr///FzFo9q3vdt9qt9ek4qnGxehso/SEC2ZHwzjIVxvuSJwIDAQAB",
   "short_name": "GUGA Knowledge"
 }

@@ -14,6 +14,7 @@ import { recordPreview } from './lib/record-preview.js';
 import { el, button, field, closeOnBackdrop } from './lib/dom.js';
 import { favicon, websiteLink } from './lib/websites.js';
 import { PINNED_RECORDS, togglePinnedRecord } from './lib/pins.js';
+import { animateSortReflow, moveSortItem, setSortDragImage } from './lib/sort-feedback.js';
 
 const db = new Database(),
   $ = (id) => document.getElementById(id);
@@ -103,6 +104,7 @@ const date = (value) =>
     new Date(value),
   );
 const isDivider = (item) => item.kind === 'divider' || /^([-*_])\1{2,}$/.test(item.text.trim());
+const DOCK_DRAG_TYPE = 'application/x-guga-shortcut';
 
 function renderList(record) {
   const todos = record.list.filter((item) => item.is_checkbox);
@@ -159,52 +161,70 @@ function renderList(record) {
                     }),
                   })
                 : el('span', { class: 'idea-bullet', 'aria-hidden': 'true' }, '•'),
-              button(item.text, () => editListItem(item, mode), 'task-text'),
+              button(
+                item.text,
+                (event) => editListItem(item, mode, event.currentTarget),
+                'task-text',
+              ),
               remove,
             );
           })
         : [empty(mode ? t('给今天留下一件想完成的事。') : t('灵感不必完整，先记下来。'))]),
     );
 }
-function editListItem(item, mode) {
-  const { dialog, body, footer } = modal(mode ? t('编辑 Todo') : t('编辑 Idea'));
-  const text = el('textarea', {
-    rows: 4,
+function editListItem(item, mode, label) {
+  const editor = el('textarea', {
+    rows: 1,
     maxlength: 5000,
+    class: 'task-text task-inline-editor',
     'aria-label': mode ? t('Todo 内容') : t('Idea 内容'),
   });
-  text.value = item.text;
-  const error = el('p', { class: 'error-text', role: 'status' });
-  body.append(field(t('内容'), text), error);
-  footer.append(
-    button(
-      t('删除'),
-      act(async () => {
-        await editStartList(db, (list) => list.filter((i) => i.id !== item.id));
-        dialog.close();
-      }),
-      'button danger',
-    ),
-    button(t('取消'), () => dialog.close()),
-    button(
-      t('保存'),
-      async () => {
-        try {
-          if (!text.value.trim()) throw new Error(t('请填写内容。'));
-          await editStartList(db, (list) => {
-            const target = list.find((i) => i.id === item.id);
-            if (!target) throw new Error(t('这条内容已在另一窗口移除。'));
-            target.text = text.value.trim();
-            return list;
-          });
-          dialog.close();
-        } catch (e) {
-          error.textContent = e.message;
-        }
-      },
-      'button primary',
-    ),
-  );
+  editor.value = item.text;
+  const fit = () => {
+    editor.style.height = 'auto';
+    editor.style.height = `${Math.max(28, editor.scrollHeight)}px`;
+  };
+  let finished = false;
+  const finish = async (save) => {
+    if (finished) return;
+    finished = true;
+    const value = editor.value.trim();
+    editor.replaceWith(label);
+    if (!save) return;
+    if (!value) {
+      notify(t('请填写内容。'));
+      return;
+    }
+    if (value === item.text) return;
+    label.textContent = value;
+    try {
+      await editStartList(db, (list) => {
+        const target = list.find((entry) => entry.id === item.id);
+        if (!target) throw new Error(t('这条内容已在另一窗口移除。'));
+        target.text = value;
+        return list;
+      });
+      schedule();
+    } catch (error) {
+      label.textContent = item.text;
+      notify(error.message);
+    }
+  };
+  editor.addEventListener('input', fit);
+  editor.addEventListener('blur', () => finish(true));
+  editor.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      finish(false);
+    } else if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      finish(true);
+    }
+  });
+  label.replaceWith(editor);
+  fit();
+  editor.focus();
+  editor.select();
 }
 for (const mode of ['todo', 'idea']) {
   $(mode + '-form').addEventListener('submit', (event) => {
@@ -476,49 +496,108 @@ function shortcutEditor(site = null, parent = null) {
 async function manageDock() {
   config = await readStartConfig();
   const { dialog, body, footer } = modal(t('管理常用网站'));
+  dialog.classList.add('dock-manager');
+  let draggingRow = null;
+  let dropCommitted = false;
+  let originalIds = config.shortcuts.map((site) => site.id);
+  const rows = () => [...body.querySelectorAll('.dock-edit-row')];
+  const restoreOrder = () => {
+    const byId = new Map(rows().map((row) => [row.dataset.siteId, row]));
+    animateSortReflow(body, () => originalIds.forEach((id) => body.append(byId.get(id))));
+  };
+  const persistOrder = async () => {
+    const ids = rows().map((row) => row.dataset.siteId);
+    try {
+      config = await updateStartConfig((current) => {
+        const byId = new Map(current.shortcuts.map((site) => [site.id, site]));
+        return {
+          shortcuts: [
+            ...ids.map((id) => byId.get(id)).filter(Boolean),
+            ...current.shortcuts.filter((site) => !ids.includes(site.id)),
+          ],
+        };
+      });
+    } catch (error) {
+      restoreOrder();
+      throw error;
+    }
+    originalIds = config.shortcuts.map((site) => site.id);
+    renderDock();
+  };
   if (!config.shortcuts.length)
     body.append(empty(t('还没有常用网站。点击添加，把常去的地方放进 Dock。')));
-  for (const [index, site] of config.shortcuts.entries()) {
-    const move = (delta) =>
-      act(async () => {
-        await updateStartConfig((current) => {
-          const list = [...current.shortcuts],
-            from = list.findIndex((item) => item.id === site.id),
-            to = from + delta;
-          if (from < 0 || to < 0 || to >= list.length) return {};
-          [list[from], list[to]] = [list[to], list[from]];
-          return { shortcuts: list };
-        });
-        dialog.close();
-        await manageDock();
-      });
-    const up = button('↑', move(-1));
-    up.disabled = index === 0;
-    up.setAttribute('aria-label', msg`上移 ${site.name}`);
-    const down = button('↓', move(1));
-    down.disabled = index === config.shortcuts.length - 1;
-    down.setAttribute('aria-label', msg`下移 ${site.name}`);
-    body.append(
-      el(
-        'div',
-        { class: 'dock-edit-row' },
-        el('strong', {}, site.name),
-        up,
-        down,
-        button(t('编辑'), () => shortcutEditor(site, dialog)),
-        button(
-          t('移除'),
-          act(async () => {
-            await updateStartConfig((current) => ({
-              shortcuts: current.shortcuts.filter((item) => item.id !== site.id),
-            }));
-            dialog.close();
-            await manageDock();
-          }),
-        ),
+  else body.append(el('p', { class: 'dock-sort-hint muted' }, t('拖动左侧把手调整顺序。')));
+  for (const site of config.shortcuts) {
+    const handle = button('⋮⋮', null, 'dock-drag-handle');
+    handle.draggable = true;
+    handle.setAttribute('aria-label', `${t('拖动排序网站')} ${site.name}`);
+    handle.title = t('拖动排序网站');
+    const row = el(
+      'div',
+      { class: 'dock-edit-row', 'data-site-id': site.id },
+      handle,
+      el('strong', {}, site.name),
+      button(t('编辑'), () => shortcutEditor(site, dialog)),
+      button(
+        t('移除'),
+        act(async () => {
+          await updateStartConfig((current) => ({
+            shortcuts: current.shortcuts.filter((item) => item.id !== site.id),
+          }));
+          dialog.close();
+          await manageDock();
+        }),
       ),
     );
+    handle.addEventListener('dragstart', (event) => {
+      draggingRow = row;
+      dropCommitted = false;
+      event.dataTransfer.setData(DOCK_DRAG_TYPE, site.id);
+      event.dataTransfer.effectAllowed = 'move';
+      setSortDragImage(event, row);
+      row.classList.add('dragging');
+    });
+    handle.addEventListener('dragend', () => {
+      if (!dropCommitted) restoreOrder();
+      draggingRow?.classList.remove('dragging');
+      draggingRow = null;
+    });
+    handle.addEventListener('keydown', (event) => {
+      const delta = event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0;
+      if (!delta) return;
+      event.preventDefault();
+      const ordered = rows();
+      const target = ordered[ordered.indexOf(row) + delta];
+      if (target && moveSortItem(row, target, delta > 0)) act(persistOrder)();
+    });
+    row.addEventListener('dragover', (event) => {
+      if (!Array.from(event.dataTransfer.types).includes(DOCK_DRAG_TYPE)) return;
+      if (!draggingRow) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'move';
+      if (draggingRow !== row)
+        moveSortItem(
+          draggingRow,
+          row,
+          event.clientY >= row.getBoundingClientRect().top + row.offsetHeight / 2,
+        );
+    });
+    row.addEventListener('drop', (event) => {
+      if (!Array.from(event.dataTransfer.types).includes(DOCK_DRAG_TYPE)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (!draggingRow) return;
+      dropCommitted = true;
+      act(persistOrder)();
+    });
+    body.append(row);
   }
+  body.addEventListener('drop', (event) => {
+    if (!draggingRow || !Array.from(event.dataTransfer.types).includes(DOCK_DRAG_TYPE)) return;
+    event.preventDefault();
+    dropCommitted = true;
+    act(persistOrder)();
+  });
   footer.append(
     button(t('添加网站'), () => shortcutEditor(null, dialog)),
     button(t('关闭'), () => dialog.close()),
@@ -569,7 +648,7 @@ async function refresh() {
       : [empty(t('把喜欢的网页标记为“喜爱”，下次打开就能在这里遇见。'))]),
   );
   const projects = active
-    .filter((r) => r.type === 'project')
+    .filter((r) => r.type === 'project' && !r.parent_project_id)
     .sort(recent)
     .slice(0, 6);
   $('project-cards').replaceChildren(

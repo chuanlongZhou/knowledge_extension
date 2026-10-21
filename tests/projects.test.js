@@ -7,6 +7,7 @@ import { newRecord, digest, normalizeRecord, duplicateIds } from '../extension/l
 import {
   upgradeProject,
   projectTree,
+  reorderProjectSiblings,
   saveProjectEdge,
   setProjectMemberships,
 } from '../extension/lib/projects.js';
@@ -183,6 +184,23 @@ test('projects form a tree while tags and direct project memberships remain many
   assert.equal((await db.list({ view: 'all', project: child.id })).items.length, 2);
   assert.equal((await db.list({ view: 'all', project: other.id })).items.length, 1);
   assert.equal(projectTree([parent, child, other])[1].breadcrumb, '研究 / 实验');
+});
+
+test('drag ordering moves only siblings and preserves their child branches', () => {
+  const first = project('第一个'),
+    child = project('子项目', first.id),
+    second = project('第二个');
+  const projects = [first, child, second];
+  const order = reorderProjectSiblings(projects, [], second.id, first.id);
+  assert.deepEqual(
+    projectTree(projects, order).map((item) => item.id),
+    [second.id, first.id, child.id],
+  );
+  assert.equal(reorderProjectSiblings(projects, order, child.id, second.id), null);
+  assert.deepEqual(
+    projectTree(projects, order).map((item) => item.id),
+    [second.id, first.id, child.id],
+  );
 });
 test('cycles, missing parents, and deleting a parent with active children are rejected', async (t) => {
   const { db, parent, child } = await fixture(t);

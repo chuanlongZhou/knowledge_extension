@@ -356,9 +356,19 @@ body[data-mode='panel'] .panel-brand {
   margin: 18px 0;
 }
 .drive-settings-controls,
-.drive-folder-choices {
+.drive-folder-choices,
+.drive-switch-panel {
   display: grid;
   gap: 12px;
+}
+.drive-switch-panel {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+}
+.drive-switch-panel .description {
+  margin: 0;
 }
 .drive-settings-controls h4 {
   margin: 10px 0 0;

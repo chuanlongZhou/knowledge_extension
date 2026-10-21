@@ -57,7 +57,6 @@
             <h2><span class="section-symbol">✓</span>Todo <small id="todo-count"></small></h2>
             <button id="open-todo" class="start-more" data-i18n="完整清单 ↗">完整清单 ↗</button>
           </header>
-          <div id="todo-items" class="start-list-items"></div>
           <form id="todo-form" class="quick-add">
             <input
               id="todo-input"
@@ -69,9 +68,10 @@
               data-i18n-aria-label="添加 Todo"
               autocomplete="off"
             /><button type="submit" aria-label="保存 Todo" data-i18n-aria-label="保存 Todo">
-              ＋
+              <span data-i18n="添加">添加</span>
             </button>
           </form>
+          <div id="todo-items" class="start-list-items"></div>
         </article>
         <article class="start-list-panel idea-panel">
           <header class="start-section-head">
@@ -80,7 +80,6 @@
             </h2>
             <button id="open-idea" class="start-more" data-i18n="完整清单 ↗">完整清单 ↗</button>
           </header>
-          <div id="idea-items" class="start-list-items"></div>
           <form id="idea-form" class="quick-add">
             <input
               id="idea-input"
@@ -92,9 +91,10 @@
               data-i18n-aria-label="添加 Idea"
               autocomplete="off"
             /><button type="submit" aria-label="保存 Idea" data-i18n-aria-label="保存 Idea">
-              ＋
+              <span data-i18n="添加">添加</span>
             </button>
           </form>
+          <div id="idea-items" class="start-list-items"></div>
         </article>
       </section>
       <section

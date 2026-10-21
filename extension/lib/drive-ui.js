@@ -77,6 +77,71 @@ export async function driveSettings(db) {
           ),
         ),
       );
+      const switchPanel = el('div', { class: 'drive-switch-panel', hidden: true });
+      controls.append(
+        button(
+          t('更换数据文件夹'),
+          run(async () => {
+            if (!switchPanel.hidden) {
+              switchPanel.hidden = true;
+              return;
+            }
+            const folders = (await driveCommand('folders')).filter(
+              (folder) => folder.id !== binding.folderId,
+            );
+            const choices = el('div', { class: 'drive-folder-choices' });
+            if (folders.length) {
+              const select = el(
+                'select',
+                { 'aria-label': t('目标数据文件夹') },
+                ...folders.map((folder) =>
+                  option(folder.id, `${folder.name} · ${folder.id.slice(0, 8)}`),
+                ),
+              );
+              choices.append(
+                field(t('目标数据文件夹'), select),
+                button(
+                  t('切换到所选文件夹'),
+                  run(async () => {
+                    const next = await driveCommand('switch-folder', { folderId: select.value });
+                    await render();
+                    status.textContent = msg`已切换到“${next.name}”。请先同步下载目标目录。`;
+                  }),
+                ),
+              );
+            } else
+              choices.append(el('p', { class: 'description' }, t('没有其他可选的数据文件夹。')));
+            const name = el('input', {
+              type: 'text',
+              maxlength: 120,
+              placeholder: APP_NAME,
+              'aria-label': t('新文件夹名称'),
+            });
+            switchPanel.replaceChildren(
+              el(
+                'p',
+                { class: 'description' },
+                t(
+                  '切换只改变本浏览器的同步目标；本地记录与原目录文件保留。切换后请先下载目标目录，再上传。',
+                ),
+              ),
+              choices,
+              field(t('新文件夹名称'), name),
+              button(
+                t('新建并切换文件夹'),
+                run(async () => {
+                  const next = await driveCommand('create-and-switch-folder', { name: name.value });
+                  await render();
+                  status.textContent = msg`已切换到“${next.name}”。请先同步下载目标目录。`;
+                }),
+              ),
+            );
+            switchPanel.hidden = false;
+          }),
+          'button small',
+        ),
+        switchPanel,
+      );
       const layoutPreview = el('div', { class: 'drive-layout-preview' });
       controls.append(
         button(

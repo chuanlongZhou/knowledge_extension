@@ -44,7 +44,14 @@ export function validateProjects(records, { onlyIds } = {}) {
   }
 }
 
-export function projectTree(projects) {
+export function projectTree(projects, order = []) {
+  const positions = new Map(order.map((id, index) => [id, index]));
+  const originalPositions = new Map(projects.map((project, index) => [project.id, index]));
+  const ordered = [...projects].sort(
+    (a, b) =>
+      (positions.get(a.id) ?? order.length + originalPositions.get(a.id)) -
+      (positions.get(b.id) ?? order.length + originalPositions.get(b.id)),
+  );
   const byId = new Map(projects.map((p) => [p.id, p]));
   const visited = new Set(),
     result = [];
@@ -53,13 +60,29 @@ export function projectTree(projects) {
     visited.add(project.id);
     const title = [...path, project.title || '未命名项目'];
     result.push({ ...project, depth, breadcrumb: title.join(' / ') });
-    for (const child of projects.filter((p) => p.parent_project_id === project.id))
+    for (const child of ordered.filter((p) => p.parent_project_id === project.id))
       visit(child, depth + 1, title);
   }
-  for (const project of projects.filter((p) => !byId.has(p.parent_project_id)))
+  for (const project of ordered.filter((p) => !byId.has(p.parent_project_id)))
     visit(project, 0, []);
-  for (const project of projects) visit(project, 0, []);
+  for (const project of ordered) visit(project, 0, []);
   return result;
+}
+
+export function reorderProjectSiblings(projects, order, sourceId, targetId, after = false) {
+  const source = projects.find((project) => project.id === sourceId);
+  const target = projects.find((project) => project.id === targetId);
+  if (
+    !source ||
+    !target ||
+    sourceId === targetId ||
+    source.parent_project_id !== target.parent_project_id
+  )
+    return null;
+  const ids = projectTree(projects, order).map((project) => project.id);
+  ids.splice(ids.indexOf(sourceId), 1);
+  ids.splice(ids.indexOf(targetId) + Number(after), 0, sourceId);
+  return ids;
 }
 
 export async function setProjectMemberships(db, id, projectIds, { add = false } = {}) {

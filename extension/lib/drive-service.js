@@ -1,6 +1,12 @@
 import { t } from './i18n.js';
 import { GoogleDrive } from './drive-client.js';
-import { bindFolder, syncDrive, resolveDriveConflict, organizeDrive } from './drive-sync.js';
+import {
+  bindFolder,
+  rebindFolder,
+  syncDrive,
+  resolveDriveConflict,
+  organizeDrive,
+} from './drive-sync.js';
 export async function handleDriveCommand(db, message) {
   const drive = new GoogleDrive();
   if (message.command === 'sync') return syncDrive(db, message.direction, { drive });
@@ -34,6 +40,13 @@ export async function handleDriveCommand(db, message) {
       }
       case 'select-folder':
         return bindFolder(db, account, await drive.folder(message.folderId));
+      case 'switch-folder':
+        return rebindFolder(db, account, await drive.folder(message.folderId));
+      case 'create-and-switch-folder': {
+        if (!binding) throw new Error(t('请先选择或新建 Google Drive 文件夹。'));
+        const folder = await drive.createFolder(message.name || '');
+        return rebindFolder(db, account, folder);
+      }
       default:
         throw new Error(t('不支持的 Google Drive 操作。'));
     }
