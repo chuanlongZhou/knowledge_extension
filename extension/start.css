@@ -150,7 +150,7 @@ body[data-mode='welcome'] {
   margin-left: 2px;
 }
 .start-list-items {
-  min-height: 130px;
+  min-height: 80px;
   max-height: 320px;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -182,6 +182,18 @@ body[data-mode='welcome'] {
   line-height: 1.65;
   cursor: pointer;
   overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.start-task .task-inline-editor {
+  min-height: 28px;
+  border-bottom: 1px solid var(--green);
+  resize: none;
+  cursor: text;
+  outline: none;
+}
+.start-task.completed .task-inline-editor {
+  text-decoration: none;
+  color: var(--ink);
 }
 .start-task-delete {
   flex: 0 0 auto;
@@ -220,8 +232,7 @@ body[data-mode='welcome'] {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: auto;
-  padding-top: 15px;
+  margin-bottom: 12px;
 }
 .quick-add input {
   min-height: 0;
@@ -234,24 +245,25 @@ body[data-mode='welcome'] {
   color: var(--ink);
 }
 .start-shell .quick-add input[type='text'] {
-  background: transparent;
-  border: 0;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 8px;
   box-shadow: none;
-  padding: 8px 0;
+  padding: 8px 10px;
 }
 .quick-add input::placeholder {
   color: var(--muted);
   opacity: 0.8;
 }
 .quick-add button {
-  width: 30px;
-  height: 30px;
-  flex-shrink: 0;
-  border: 1px solid var(--line);
-  border-radius: 50%;
-  background: var(--white);
-  color: var(--green);
-  font-size: 20px;
+  flex: none;
+  min-width: 54px;
+  padding: 8px 11px;
+  border: 1px solid var(--green);
+  border-radius: 8px;
+  background: var(--green);
+  color: var(--white);
+  font-size: 12px;
 }
 .start-section {
   margin-top: 38px;
@@ -429,7 +441,7 @@ body[data-mode='welcome'] {
 }
 .start-list-items .start-empty {
   border: 0;
-  padding: 22px 0;
+  padding: 13px 0;
 }
 .start-footer {
   display: flex;
@@ -456,7 +468,7 @@ body[data-mode='welcome'] {
   max-width: calc(100% - 28px);
   padding: 10px 12px;
   border: 1px solid color-mix(in srgb, var(--line) 80%, var(--white));
-  border-radius: 24px;
+  border-radius: 12px;
   background: color-mix(in srgb, var(--white) 90%, transparent);
   backdrop-filter: blur(16px);
   box-shadow: 0 9px 36px #25332f14;
@@ -496,7 +508,7 @@ body[data-mode='welcome'] {
   height: 40px;
   flex: 0 0 40px;
   border: 0;
-  border-radius: 13px;
+  border-radius: 8px;
   color: var(--green);
   background: var(--green-light);
   font-size: 20px;
@@ -536,6 +548,9 @@ body[data-mode='welcome'] {
 .start-dialog {
   width: min(850px, calc(100vw - 30px));
 }
+.start-dialog.dock-manager {
+  width: min(620px, calc(100vw - 30px));
+}
 .start-dialog .dialog-body {
   padding: 24px;
 }
@@ -554,11 +569,40 @@ body[data-mode='welcome'] {
 .start-dialog .record-preview {
   font-size: 14px;
 }
+.dock-sort-hint {
+  margin: 0 0 12px;
+  font-size: 12px;
+}
 .dock-edit-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--white);
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    opacity 160ms ease;
+}
+.dock-edit-row.dragging {
+  border-color: var(--green);
+  background: var(--green-light);
+  opacity: 0.65;
+}
+.dock-edit-row .dock-drag-handle {
+  flex: none;
+  padding: 4px 6px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 20px;
+  cursor: grab;
+}
+.dock-edit-row .dock-drag-handle:active {
+  cursor: grabbing;
 }
 .dock-edit-row strong {
   flex: 1;

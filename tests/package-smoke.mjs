@@ -164,6 +164,7 @@ try {
     return { width: bitmap.width, height: bitmap.height };
   });
   assert.deepEqual(image, { width: 128, height: 128 });
+  await page.locator('#settings').click();
   await page.locator('#theme').click();
   const theme = page.getByRole('dialog', { name: '主题与字体', exact: true });
   await theme.getByLabel('主题', { exact: true }).selectOption('dark');

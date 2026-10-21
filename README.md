@@ -1,4 +1,4 @@
-# GUGA Knowledge 0.9.1 · Google Drive 简化版
+# GUGA Knowledge 0.9.2 · Google Drive 简化版
 
 浏览器负责离线收集与整理，扩展直接连接用户自己的 Google Drive。仅在点击“同步下载”或“同步上传”时传输数据；ZIP 导出是独立备份。
 
@@ -78,6 +78,6 @@
 
 Node 22+：`npm ci`、`npm run lint`、`npm test`、`npx playwright install chromium`、`npm run test:drive-browser`、`npm run build`。
 
-输出 dist/pkm-nexus 和 dist/GUGA-Knowledge-0.9.1-direct-drive.zip。商店上传 ZIP 的 manifest.json 位于根目录，打包时移除仅供本地固定扩展 ID 使用的 `key` 字段；本地解压加载目录仍保留该字段。首次上传后，Chrome Web Store 会分配商品 ID。发布前应确认 Google Cloud 的“Chrome 扩展程序”OAuth 客户端绑定此商品 ID，并把对应客户端 ID 配置到商店包；本地旧 ID 的 OAuth 客户端不一定适用于商店版。若已有本地数据，先导出完整 ZIP，再在商店版中导入。`npm run test:start-browser` 验证欢迎页与设置入口、真实空白新标签页由官方接口打开启动页、启动页交互、窄屏及编辑后的稳定排序；`npm run test:language-browser` 验证四种语言、原始内容不变、草稿恢复和 360px 排版。
+输出 dist/pkm-nexus 和 dist/GUGA-Knowledge-0.9.2-direct-drive.zip。商店上传 ZIP 的 manifest.json 位于根目录，打包时移除 `key` 字段；本地解压加载目录保留商店公钥，因此本地与商店扩展 ID 均为 `hmlcjcejioggaegkahdnbgpnajchhlbl`。OAuth 客户端须在 Google Cloud 中作为 Chrome 扩展程序绑定此 ID。此 ZIP 应上传为该商店条目的更新。旧开发版扩展 ID 不同；若其中已有本地数据，先导出完整 ZIP，再在新 ID 的扩展中导入。`npm run test:start-browser` 验证欢迎页与设置入口、真实空白新标签页由官方接口打开启动页、启动页交互、窄屏及编辑后的稳定排序；`npm run test:language-browser` 验证四种语言、原始内容不变、草稿恢复和 360px 排版。
 
 分支 codex/ui-themes-companion 保存 0.7.3 的完整功能；codex/direct-google-drive 为本简化版。旧版本代码与历史测试留作迁移参考，不进入简化版发行包的运行流程。

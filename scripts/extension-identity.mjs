@@ -14,5 +14,5 @@ const id = [
   .map((digit) => String.fromCharCode(97 + parseInt(digit, 16)))
   .join('');
 console.log(
-  `Stable extension ID: ${id}\nRegister this ID in the Chrome OAuth client. Keep manifest.key in every device and release. Changing extension identity creates a separate browser database; export/import a ZIP to migrate existing data.`,
+  `Stable extension ID: ${id}\nRegister this ID in the Chrome OAuth client. Keep manifest.key in unpacked builds; Chrome Web Store uploads omit it. Changing extension identity creates a separate browser database; export/import a ZIP to migrate existing data.`,
 );

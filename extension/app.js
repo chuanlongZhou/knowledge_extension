@@ -16,6 +16,7 @@ import {
   saveProject,
 } from './lib/projects.js';
 import { projectGraph } from './lib/project-graph.js';
+import { animateSortReflow, moveSortItem, setSortDragImage } from './lib/sort-feedback.js';
 import {
   newRecord,
   TYPES,
@@ -92,14 +93,24 @@ const state = {
   cardModes: {},
   sortMode: 'updated_at',
   sortDirection: 'desc',
+  projectOrder: [],
+  collapsedProjects: new Set(),
 };
 const recordOrder = new RecordOrder();
 const TAG_GROUPS = 'ui:tag-groups';
+const SIDEBAR_PROJECT_HEIGHT = 'ui:sidebar-project-height';
+const SIDEBAR_TOOLS_COLLAPSED = 'ui:sidebar-tools-collapsed';
+const PROJECT_ORDER = 'ui:project-order';
+const COLLAPSED_PROJECTS = 'ui:collapsed-projects';
 const RECORD_DRAG_TYPE = 'application/x-pkm-records';
+const PROJECT_DRAG_TYPE = 'application/x-pkm-project';
 let viewStorageKey;
 let currentWindowId;
 const $ = (id) => document.getElementById(id);
 let toastTimer, refreshTimer, activeDialog, panelEditor;
+let draggedProjectId = '';
+let projectDragSession = null;
+let projectSortSettling = 0;
 let exporting = false;
 let sortWrite = Promise.resolve();
 let recordPointerHeld = false,
@@ -107,12 +118,19 @@ let recordPointerHeld = false,
   refreshAfterDrag = false,
   recordDragOrigin = null;
 function refreshBlockedByDrag() {
-  if (!recordPointerHeld && !recordDragging) return false;
+  if (!recordPointerHeld && !recordDragging && !draggedProjectId && !projectSortSettling)
+    return false;
   refreshAfterDrag = true;
   return true;
 }
 function finishRecordInteraction() {
-  if (!recordPointerHeld && !recordDragging && refreshAfterDrag) {
+  if (
+    !recordPointerHeld &&
+    !recordDragging &&
+    !draggedProjectId &&
+    !projectSortSettling &&
+    refreshAfterDrag
+  ) {
     refreshAfterDrag = false;
     refreshSoon(0);
   }
@@ -304,13 +322,10 @@ const VIEWS = {
 $('app').innerHTML = `
 <div class="app-shell">
   <aside class="sidebar">
-    <div class="brand"><img class="brand-penguin" src="icons/penguin.png" alt="企鹅" data-i18n-alt="企鹅"><div><div class="brand-name">${APP_NAME}</div><div class="brand-sub">${APP_TAGLINE}</div></div></div>
+    <div class="sidebar-brand-row"><div class="brand"><img class="brand-penguin" src="icons/penguin.png" alt="企鹅" data-i18n-alt="企鹅"><div><div class="brand-name">${APP_NAME}</div><div class="brand-sub">${APP_TAGLINE}</div></div></div><button id="manual" class="sidebar-help" aria-label="使用说明书" data-i18n-aria-label="使用说明书" title="使用说明书">?</button></div>
     <nav id="nav" class="nav" aria-label="记录视图" data-i18n-aria-label="记录视图"></nav>
-    <section class="projects-section"><div class="section-label"><span data-i18n="项目">项目</span><button id="add-project" class="icon-button" aria-label="新增项目" data-i18n-aria-label="新增项目">＋</button></div><div id="projects-nav"></div></section>
-    <section class="tag-groups" aria-label="标签" data-i18n-aria-label="标签"><div class="section-label"><span data-i18n="标签">标签</span><div><button id="tag-appearance" class="icon-button" aria-label="设置标签外观" data-i18n-aria-label="设置标签外观">⚙</button><button id="add-tag-group" class="icon-button" aria-label="新建标签" data-i18n-aria-label="新建标签">＋</button></div></div><div id="tags-nav" class="tag-cloud"></div></section>
-    <p class="tag-group-hint muted" data-i18n="把标签拖到记录上；把记录拖到项目文件夹。归类后可标记已整理。">把标签拖到记录上；把记录拖到项目文件夹。归类后可标记已整理。</p>
-    <nav id="utility-nav" class="nav utility-nav" aria-label="重复检查与回收站" data-i18n-aria-label="重复检查与回收站"></nav>
-    <div class="sidebar-bottom"><div id="library-summary" class="library-summary"></div><button id="theme" class="nav-item" data-i18n="◐ 主题与字体">◐　主题与字体</button><button id="manual" class="nav-item" data-i18n="▤ 使用说明书">▤　使用说明书</button><button id="settings" class="nav-item" data-i18n="⚙ 设置与数据管理">⚙　设置与数据管理</button><small class="extension-version muted"></small></div>
+    <div id="sidebar-regions" class="sidebar-regions"><section class="projects-section"><div class="section-label"><span data-i18n="项目">项目</span><button id="add-project" class="icon-button" aria-label="新增项目" data-i18n-aria-label="新增项目">＋</button></div><div id="projects-nav"></div></section><div id="sidebar-splitter" class="sidebar-splitter" role="separator" tabindex="0" aria-orientation="horizontal" aria-controls="projects-nav tags-nav" aria-label="调整项目与标签区域高度" aria-valuemin="20" aria-valuemax="80" aria-valuenow="55"></div><section class="tag-groups" aria-label="标签" data-i18n-aria-label="标签"><div class="section-label"><span data-i18n="标签">标签</span><div><button id="tag-appearance" class="icon-button" aria-label="设置标签外观" data-i18n-aria-label="设置标签外观">⚙</button><button id="add-tag-group" class="icon-button" aria-label="新建标签" data-i18n-aria-label="新建标签">＋</button></div></div><div id="tags-nav" class="tag-cloud"></div></section></div>
+    <div class="sidebar-actions"><button id="toggle-utility" class="sidebar-actions-toggle" aria-controls="utility-nav" aria-expanded="true"><span data-i18n="整理工具">整理工具</span><span class="sidebar-actions-caret" aria-hidden="true">▾</span></button><nav id="utility-nav" class="nav utility-nav" aria-label="重复检查与回收站" data-i18n-aria-label="重复检查与回收站"></nav><button id="settings" class="nav-item sidebar-settings" data-i18n="⚙ 设置与数据管理">⚙　设置与数据管理</button></div>
   </aside>
   <main class="main"><div class="panel-brand"><img class="brand-penguin" src="icons/penguin.png" alt="企鹅" data-i18n-alt="企鹅"><strong>${APP_NAME}</strong></div>
     <header class="topbar"><div class="search-wrap"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="搜索标题、正文、标签和来源…" data-i18n-placeholder="搜索标题、正文、标签和来源…" aria-label="搜索记录" data-i18n-aria-label="搜索记录"></div><div class="topbar-actions"><button id="save-local" class="button" data-i18n="导出备份">导出备份</button><button id="sync-download" class="button" data-i18n="↓ 同步下载">↓ 同步下载</button><button id="sync" class="button" data-i18n="↑ 同步上传">↑ 同步上传</button><button id="new" class="button primary" data-i18n="＋ 新建记录">＋ 新建记录</button></div></header>
@@ -332,16 +347,61 @@ $('app').innerHTML = `
 translateStatic($('app'));
 await installMascot();
 
-for (const [id, label, name] of [
-  ['theme', t('主题与字体'), 'theme'],
-  ['manual', t('使用说明书'), 'book'],
-  ['settings', t('设置与数据管理'), 'settings'],
-]) {
-  $(id).replaceChildren(
-    el('span', { class: 'nav-symbol', 'aria-hidden': 'true' }, icon(name)),
-    el('span', { class: 'nav-label' }, label),
-  );
+const sidebarRegions = $('sidebar-regions');
+const sidebarSplitter = $('sidebar-splitter');
+let sidebarProjectHeight = Number(localStorage.getItem(SIDEBAR_PROJECT_HEIGHT));
+function setSidebarProjectHeight(value, persist = false) {
+  sidebarProjectHeight = Math.max(20, Math.min(80, Math.round(value)));
+  sidebarRegions.style.setProperty('--project-height', `${sidebarProjectHeight}%`);
+  sidebarSplitter.setAttribute('aria-valuenow', String(sidebarProjectHeight));
+  if (persist) localStorage.setItem(SIDEBAR_PROJECT_HEIGHT, String(sidebarProjectHeight));
 }
+setSidebarProjectHeight(
+  Number.isFinite(sidebarProjectHeight) && sidebarProjectHeight > 0 ? sidebarProjectHeight : 55,
+);
+sidebarSplitter.addEventListener('pointerdown', (event) => {
+  if (event.button !== 0) return;
+  event.preventDefault();
+  sidebarSplitter.setPointerCapture(event.pointerId);
+  sidebarSplitter.classList.add('resizing');
+});
+sidebarSplitter.addEventListener('pointermove', (event) => {
+  if (!sidebarSplitter.hasPointerCapture(event.pointerId)) return;
+  const { top, height } = sidebarRegions.getBoundingClientRect();
+  if (height > 0) setSidebarProjectHeight(((event.clientY - top) / height) * 100);
+});
+for (const name of ['pointerup', 'pointercancel'])
+  sidebarSplitter.addEventListener(name, (event) => {
+    if (!sidebarSplitter.hasPointerCapture(event.pointerId)) return;
+    sidebarSplitter.releasePointerCapture(event.pointerId);
+    sidebarSplitter.classList.remove('resizing');
+    setSidebarProjectHeight(sidebarProjectHeight, true);
+  });
+sidebarSplitter.addEventListener('keydown', (event) => {
+  const change = { ArrowUp: -5, ArrowDown: 5, Home: -Infinity, End: Infinity }[event.key];
+  if (change === undefined) return;
+  event.preventDefault();
+  setSidebarProjectHeight(
+    change === -Infinity ? 20 : change === Infinity ? 80 : sidebarProjectHeight + change,
+    true,
+  );
+});
+sidebarSplitter.addEventListener('dblclick', () => setSidebarProjectHeight(55, true));
+
+const utilityToggle = $('toggle-utility');
+const utilityNav = $('utility-nav');
+function setUtilityCollapsed(collapsed, persist = false) {
+  utilityNav.hidden = collapsed;
+  utilityToggle.setAttribute('aria-expanded', String(!collapsed));
+  if (persist) localStorage.setItem(SIDEBAR_TOOLS_COLLAPSED, String(collapsed));
+}
+setUtilityCollapsed(localStorage.getItem(SIDEBAR_TOOLS_COLLAPSED) === 'true');
+utilityToggle.addEventListener('click', () => setUtilityCollapsed(!utilityNav.hidden, true));
+
+$('settings').replaceChildren(
+  el('span', { class: 'nav-symbol', 'aria-hidden': 'true' }, icon('settings')),
+  el('span', { class: 'nav-label' }, t('设置与数据管理')),
+);
 for (const penguin of document.querySelectorAll('.brand-penguin')) {
   if (!panel && !matchMedia('(prefers-reduced-motion: reduce)').matches)
     requestAnimationFrame(() =>
@@ -459,9 +519,9 @@ $('tag-appearance').addEventListener(
   act(() => openTagStyle()),
 );
 $('settings').addEventListener('click', act(openSettings));
-$('theme').addEventListener('click', act(openTheme));
 const panelTheme = button('◐', act(openTheme), 'icon-button');
 panelTheme.setAttribute('aria-label', t('主题与字体'));
+$('manual').title = t('使用说明书');
 $('manual').addEventListener('click', () =>
   chrome.tabs.create({ url: chrome.runtime.getURL('manual.html') }),
 );
@@ -623,6 +683,8 @@ async function refresh() {
     examplesVisible,
     tagGroups,
     pinnedIds,
+    projectOrder,
+    collapsedProjects,
   ] = await Promise.all([
     db.allCatalog(),
     db.captures(),
@@ -633,6 +695,8 @@ async function refresh() {
     db.getState(EXAMPLES_VISIBLE, true),
     db.getState(TAG_GROUPS, []),
     db.getState(PINNED_RECORDS, []),
+    db.getState(PROJECT_ORDER, []),
+    db.getState(COLLAPSED_PROJECTS, []),
   ]);
   if (examplesVisible) await ensureExamplesLoaded();
   const projects = catalog.filter((m) => m.type === 'project' && !m.deleted_at);
@@ -675,6 +739,8 @@ async function refresh() {
     tab.setAttribute('aria-selected', String(tab.dataset.type === state.type));
   }
   state.projects = projects;
+  state.projectOrder = Array.isArray(projectOrder) ? projectOrder : [];
+  state.collapsedProjects = new Set(Array.isArray(collapsedProjects) ? collapsedProjects : []);
   state.pinnedIds = pinnedIds;
   state.captures = captures;
   state.conflicts = conflicts;
@@ -701,10 +767,45 @@ async function refresh() {
   }
   const projectBranches = new Map();
   const projectRoots = [];
-  for (const p of projectTree(projects)) {
+  for (const p of projectTree(projects, state.projectOrder)) {
+    const hasChildren = projects.some((child) => child.parent_project_id === p.id);
+    const collapsed = state.collapsedProjects.has(p.id);
+    const toggle = hasChildren
+      ? button(
+          collapsed ? '▸' : '▾',
+          act(async () => {
+            if (state.collapsedProjects.has(p.id)) state.collapsedProjects.delete(p.id);
+            else state.collapsedProjects.add(p.id);
+            const isCollapsed = state.collapsedProjects.has(p.id);
+            toggle.textContent = isCollapsed ? '▸' : '▾';
+            toggle.setAttribute('aria-expanded', String(!isCollapsed));
+            toggle.setAttribute('aria-label', isCollapsed ? t('展开子项目') : t('折叠子项目'));
+            children.hidden = isCollapsed;
+            await db.setState(COLLAPSED_PROJECTS, [...state.collapsedProjects]);
+          }),
+          'project-toggle',
+        )
+      : null;
+    if (toggle) {
+      toggle.setAttribute('aria-label', collapsed ? t('展开子项目') : t('折叠子项目'));
+      toggle.setAttribute('aria-expanded', String(!collapsed));
+    }
+    const dragHandle = el(
+      'span',
+      {
+        class: 'project-drag-handle',
+        draggable: 'true',
+        role: 'button',
+        tabindex: '0',
+        title: t('拖动排序项目'),
+        'aria-label': t('拖动排序项目'),
+      },
+      '⋮⋮',
+    );
     const node = el(
       'div',
       { class: `project-nav${state.project === p.id ? ' active' : ''}`, 'data-project-id': p.id },
+      toggle || el('span', { class: 'project-toggle-placeholder', 'aria-hidden': 'true' }),
       button(
         `${p.appearance?.icon || '📁'}  ${p.title}`,
         () => {
@@ -722,19 +823,90 @@ async function refresh() {
         act(() => openProject(p.id)),
         'icon-button',
       ),
+      dragHandle,
     );
     node.title = p.breadcrumb;
     if (p.appearance?.color) node.style.color = p.appearance.color;
     recordDropTarget(node, ({ ids }) => addToProjects(ids, [p.id]));
+    dragHandle.addEventListener('dragstart', (event) => {
+      draggedProjectId = p.id;
+      projectDragSession = {
+        branch,
+        parent: branch.parentElement,
+        next: branch.nextSibling,
+        committed: false,
+      };
+      event.dataTransfer.setData(PROJECT_DRAG_TYPE, p.id);
+      event.dataTransfer.effectAllowed = 'move';
+      setSortDragImage(event, node);
+      branch.classList.add('project-dragging');
+    });
+    dragHandle.addEventListener('dragend', () => {
+      if (projectDragSession && !projectDragSession.committed) {
+        const { branch: source, parent, next } = projectDragSession;
+        if (source.parentElement === parent)
+          animateSortReflow(parent, () => parent.insertBefore(source, next));
+      }
+      draggedProjectId = '';
+      branch.classList.remove('project-dragging');
+      projectDragSession = null;
+      finishRecordInteraction();
+    });
+    node.addEventListener('dragover', (event) => {
+      if (![...event.dataTransfer.types].includes(PROJECT_DRAG_TYPE)) return;
+      const source = state.projects.find((project) => project.id === draggedProjectId);
+      if (!source || source.parent_project_id !== p.parent_project_id) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.dataTransfer.dropEffect = 'move';
+      if (source.id !== p.id && projectDragSession)
+        moveSortItem(
+          projectDragSession.branch,
+          branch,
+          event.clientY >= node.getBoundingClientRect().top + node.offsetHeight / 2,
+        );
+    });
+    node.addEventListener('drop', (event) => {
+      if (![...event.dataTransfer.types].includes(PROJECT_DRAG_TYPE)) return;
+      const source = state.projects.find((project) => project.id === draggedProjectId);
+      if (!source || source.parent_project_id !== p.parent_project_id) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (!projectDragSession || !draggedProjectId) return;
+      projectDragSession.committed = true;
+      const order = [...$('projects-nav').querySelectorAll('.project-branch')].map(
+        (item) => item.firstElementChild.dataset.projectId,
+      );
+      const previous = projectTree(state.projects, state.projectOrder).map((item) => item.id);
+      if (order.every((id, index) => id === previous[index])) return;
+      projectSortSettling++;
+      act(async () => {
+        state.projectOrder = order;
+        try {
+          await db.setState(PROJECT_ORDER, order);
+          if (!matchMedia('(prefers-reduced-motion: reduce)').matches)
+            await new Promise((resolve) => setTimeout(resolve, 210));
+        } catch (error) {
+          refreshAfterDrag = true;
+          throw error;
+        } finally {
+          projectSortSettling--;
+          finishRecordInteraction();
+        }
+      })();
+    });
     const branch = el('div', { class: 'project-branch' }, node);
     const children = el('div', { class: 'project-children' });
+    children.hidden = collapsed;
     branch.append(children);
     projectBranches.set(p.id, children);
     if (projectBranches.has(p.parent_project_id))
       projectBranches.get(p.parent_project_id).append(branch);
     else projectRoots.push(branch);
   }
+  const projectScrollTop = $('projects-nav').scrollTop;
   $('projects-nav').replaceChildren(...projectRoots);
+  $('projects-nav').scrollTop = projectScrollTop;
   const p = projects.find((p) => p.id === state.project);
   state.tagStyles = await db.getState('ui:tag-styles', {});
   if (state.project && !p) state.project = '';
@@ -794,20 +966,11 @@ async function refresh() {
     $(id).textContent = state.busy ? t('同步中…') : t('↑ 同步上传');
   }
   for (const id of ['sync-download', 'panel-sync-download']) $(id).disabled = state.busy;
-  $('library-summary').replaceChildren(
-    el(
-      'span',
-      {},
-      settings.driveAccount
-        ? `Google Drive · ${binding?.name || t('尚未选择文件夹')}`
-        : t('Google Drive · 尚未登录'),
-    ),
-    el('small', {}, t('浏览器离线保存；手动下载或上传，随时导出 ZIP 备份。')),
-  );
   const tags = [...new Set([...tagGroups, ...active.flatMap((m) => m.tags)])].sort((a, b) =>
     a.localeCompare(b),
   );
   state.tagGroups = tags;
+  const tagScrollTop = $('tags-nav').scrollTop;
   $('tags-nav').replaceChildren(
     ...tags.map((tag) => {
       const node = button(
@@ -840,6 +1003,7 @@ async function refresh() {
       ? [el('small', { class: 'muted tag-group-empty' }, t('点击 ＋ 新建标签'))]
       : []),
   );
+  $('tags-nav').scrollTop = tagScrollTop;
   $('tag-filter').replaceChildren(
     option('', t('全部标签')),
     ...tags.map((tag) => option(tag, tag, tag === state.tag)),
@@ -1010,6 +1174,7 @@ async function openExample(example) {
   const { dialog, body, footer } = modal(t('内置示例：') + example.title, {
     wide: true,
     onClose: () => {
+      preview?.querySelectorAll('.markdown').forEach((view) => view.dispose?.());
       preview?.querySelectorAll('.asset-view').forEach((view) => view.dispose?.());
     },
   });
@@ -1172,6 +1337,15 @@ async function addTagGroup(value) {
     if (!groups.includes(name)) await db.setState(TAG_GROUPS, [...groups, name]);
   });
   return name;
+}
+async function availableEditorTags() {
+  const [groups, catalog] = await Promise.all([db.getState(TAG_GROUPS, []), db.allCatalog()]);
+  return [
+    ...new Set([
+      ...groups,
+      ...catalog.filter((item) => !item.deleted_at).flatMap((item) => item.tags || []),
+    ]),
+  ];
 }
 function openTagGroup() {
   const { dialog, body, footer } = modal(t('新建标签'));
@@ -1522,7 +1696,7 @@ function renderCards() {
           m.organization_state === 'organized' ? el('span', { class: 'badge' }, t('已整理')) : null,
           m.dirty ? el('span', { class: 'badge pending' }, t('待同步')) : null,
           m.task_status ? el('span', { class: 'badge' }, t(TASK_STATUSES[m.task_status])) : null,
-          ...((m.attachments || []).some((a) => a.kind !== 'snapshot')
+          ...(m.type !== 'snapshot' && (m.attachments || []).some((a) => a.kind !== 'snapshot')
             ? [
                 el(
                   'span',
@@ -2090,6 +2264,8 @@ async function openEditor(id, { value, key, simple = false, parentDialog = null,
   }
   editor = createEditor(db, {
     ...data,
+    availableTags: await availableEditorTags(),
+    onCreateTag: addTagGroup,
     draftUi: { ...data.draftUi, previewing: false },
     simple,
     panel: false,
@@ -2125,6 +2301,8 @@ async function setupPanel() {
     editor?.destroy();
     editor = createEditor(db, {
       ...data,
+      availableTags: await availableEditorTags(),
+      onCreateTag: addTagGroup,
       panel: true,
       onSave: saveEditorRecord,
       onNavigate: act(async (type, captured) => {
@@ -2647,15 +2825,17 @@ async function openSettings() {
         await panelEditor?.flush();
       },
     }),
-    await driveSettings(db),
   );
+  const appearanceButton = button(t('主题与字体'), act(openTheme));
+  appearanceButton.id = 'theme';
   const appearanceSection = el(
     'section',
     { class: 'settings-section settings-half' },
     el('h3', {}, t('主题与字体')),
     el('p', { class: 'description' }, t('选择配色主题，调整各区域的字体与导航行距。')),
-    button(t('主题与字体'), act(openTheme)),
+    appearanceButton,
   );
+  body.append(appearanceSection, await driveSettings(db));
   const examplesHidden = el('input', {
     type: 'checkbox',
     checked: !(await db.getState(EXAMPLES_VISIBLE, true)),
@@ -2886,7 +3066,6 @@ async function openSettings() {
   body.append(
     dataSection,
     await startSettings(),
-    appearanceSection,
     examplesSection,
     await mascotSettings(),
     websitesSection,

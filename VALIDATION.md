@@ -1,5 +1,11 @@
 # GUGA Knowledge 验证记录
 
+## 2026-10-20：0.9.2 商店版 Google 登录配置
+
+- 商店公开 ID 为 `hmlcjcejioggaegkahdnbgpnajchhlbl`；将发布者提供的新 Chrome 扩展 OAuth 客户端 ID 写入清单，并将版本升至 0.9.2，以便更新现有商店条目。随后用发布者提供的商店公钥替换原开发公钥；SHA-256 推导的开发版 ID 已与商店 ID 一致。公钥仅在本地解压目录保留。
+- `npm run build` 通过，商店包根目录清单为 0.9.2，含新客户端 ID 和 `drive.file` scope，不含 `key`；147 个文件。
+- 尚未上传商店或用真实 Google 账号验收。须确认新客户端在 Google Cloud 中的类型为 Chrome Extension、Item ID 为商店 ID；商店更新发布后再验证登录与 Drive 文件夹选择。
+
 ## 2026-10-19：商店上传包清单
 
 - 首次上传反馈 `key field is not allowed in manifest`。商店 ZIP 构建现移除 `manifest.key`，本地解压目录保留公钥。发行包检查明确验证 ZIP 根目录清单无 `key`；Google OAuth 须在商店分配 ID 后核对，不能凭本地固定 ID 推定商店版可登录。

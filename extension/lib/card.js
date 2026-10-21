@@ -126,6 +126,7 @@ export function typedCard(
         assetView(descriptor, {
           local: async (d) => (await db.getAsset(d.id))?.blob,
           load: (d) => loadAsset(db, d),
+          imageOnly: descriptor.kind === 'image',
         }),
       );
     else

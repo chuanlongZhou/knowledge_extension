@@ -9,6 +9,7 @@ import { websiteTitle, websiteLink, websiteLabel, isPlaceholderTitle } from './w
 import { openWebsiteTabs, websiteItem, droppedWebsites, closeCapturedTabs } from './tabs.js';
 import { cacheDraft, clearDraft } from './drafts.js';
 import { appendCollected } from './collected.js';
+import { createMarkdownEditor } from './markdown-vendor.js';
 
 export function createEditor(
   db,
@@ -26,6 +27,8 @@ export function createEditor(
     onNavigate,
     onCancel,
     closeSourceKey,
+    availableTags = [],
+    onCreateTag = async () => {},
   } = {},
 ) {
   let record = upgradeRecord(initial || row?.record || newRecord()),
@@ -37,7 +40,8 @@ export function createEditor(
     disposed = false,
     saving = false,
     dirty = !!recovered,
-    previewing = false;
+    previewing = false,
+    markdownEditor;
   const selectedTabIds = new Set(draftUi.selectedTabs || []);
   const collectedIds = new Set(draftUi.collectedIds || []);
   draftKey ||= row ? `draft:editor:${row.id}` : panel ? 'draft:panel' : 'draft:editor:new';
@@ -66,19 +70,31 @@ export function createEditor(
       placeholder: t('写下想法，或粘贴图片…'),
     });
   content.value = record.content;
+  const codeHost = el('div', {
+    class: 'markdown-code',
+    'aria-label': t('Markdown 源码'),
+    hidden: true,
+  });
   const source = el('textarea', {
     name: panel ? 'url' : 'urls',
     placeholder: t('来源链接（可选）'),
     rows: 2,
   });
   source.value = rawUrls ?? record.sources.map((s) => s.url).join('\n');
-  const tags = el('input', {
-      name: 'tags',
-      type: 'text',
-      value: record.tags.join(', '),
-      placeholder: t('用逗号分隔'),
-    }),
-    summary = el('textarea', { name: 'summary', maxlength: 2000, rows: 2 });
+  const selectedTags = new Set(record.tags);
+  const tags = el('input', { name: 'tags', type: 'hidden', value: record.tags.join(', ') });
+  const tagEntry = el('input', {
+    type: 'text',
+    maxlength: 100,
+    list: 'editor-tag-options',
+    placeholder: t('选择标签或输入新标签'),
+    'aria-label': t('选择标签或输入新标签'),
+  });
+  tagEntry.value = draftUi.tagEntry || '';
+  const tagChips = el('div', { class: 'editor-tag-chips' });
+  const tagOptions = el('datalist', { id: 'editor-tag-options' });
+  const tagControl = el('div', { class: 'editor-tag-control' });
+  const summary = el('textarea', { name: 'summary', maxlength: 2000, rows: 2 });
   summary.value = record.summary;
   const organization = el('input', {
       name: 'organized',
@@ -91,11 +107,81 @@ export function createEditor(
       row?.rev ? t('修改保留原 ID') : t('输入自动保存为本机草稿'),
     ),
     error = el('div', { class: 'error-text', role: 'alert' });
-  const preview = el('div', { hidden: true }),
+  function renderTags() {
+    tags.value = [...selectedTags].join(', ');
+    tagChips.replaceChildren(
+      ...[...selectedTags].map((name) =>
+        button(
+          `${name} ×`,
+          () => {
+            selectedTags.delete(name);
+            renderTags();
+            changed();
+          },
+          'tag-chip editor-tag-chip',
+        ),
+      ),
+    );
+    tagOptions.replaceChildren(
+      ...availableTags
+        .filter((name) => !selectedTags.has(name))
+        .map((name) => el('option', { value: name })),
+    );
+  }
+  async function addEnteredTag() {
+    const name = tagEntry.value.trim();
+    if (!name) return true;
+    if (name.length > 100 || /[,，\n\r]/.test(name))
+      throw new Error(t('请填写 1–100 字的标签名称，不含逗号或换行。'));
+    const existing = availableTags.find(
+      (tag) => tag.toLocaleLowerCase() === name.toLocaleLowerCase(),
+    );
+    const chosen = existing || name;
+    if (!existing && !selectedTags.has(chosen)) {
+      if (!window.confirm(msg`创建新标签“${name}”？`)) return false;
+      await onCreateTag(name);
+      availableTags.push(name);
+    }
+    selectedTags.add(chosen);
+    tagEntry.value = '';
+    renderTags();
+    changed();
+    return true;
+  }
+  tagEntry.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && !event.isComposing) {
+      event.preventDefault();
+      addEnteredTag().catch((cause) => {
+        error.textContent = cause.message;
+      });
+    }
+  });
+  tagControl.append(
+    tags,
+    tagChips,
+    el(
+      'div',
+      { class: 'row' },
+      tagEntry,
+      button(
+        t('添加标签'),
+        () =>
+          addEnteredTag().catch((cause) => {
+            error.textContent = cause.message;
+          }),
+        'button small',
+      ),
+    ),
+    tagOptions,
+  );
+  renderTags();
+  const preview = el('div', { class: 'markdown-live-preview', hidden: true }),
     media = mediaComposer(db, content, {
       attachments: record.attachments,
+      selection: () => (previewing ? markdownEditor?.selection : undefined),
       onChange: () => {
         dirty = true;
+        markdownEditor?.setValue(content.value);
         if (previewing) {
           preview.querySelector('.markdown')?.dispose?.();
           preview.replaceChildren(markdownPreview(content.value, media.preview()));
@@ -107,6 +193,22 @@ export function createEditor(
     snapshotPane = el('section', { 'data-pane': 'snapshot' }),
     listPane = el('section', { 'data-pane': 'list' }),
     groupPane = el('section', { 'data-pane': 'website_group' });
+  markdownEditor = createMarkdownEditor(
+    codeHost,
+    content.value,
+    (value) => {
+      content.value = value;
+      content.dispatchEvent(new Event('input', { bubbles: true }));
+    },
+    (event) => media.handlePaste(event),
+  );
+  content.addEventListener('input', () => {
+    markdownEditor.setValue(content.value);
+    if (previewing) {
+      preview.querySelector('.markdown')?.dispose?.();
+      preview.replaceChildren(markdownPreview(content.value, media.preview()));
+    }
+  });
   const save = el(
     'button',
     { type: 'submit', class: 'button primary' },
@@ -119,19 +221,26 @@ export function createEditor(
           : t('保存到本机'),
   );
   const previewButton = button(
-    t('预览'),
+    t('实时预览'),
     () => {
       previewing = !previewing;
       content.hidden = previewing;
+      codeHost.hidden = !previewing;
       preview.hidden = !previewing;
+      codeHost.parentElement.classList.toggle('preview-open', previewing);
       media.root.querySelector('.media-gallery').hidden = previewing;
       preview.querySelector('.markdown')?.dispose?.();
       if (previewing) preview.replaceChildren(markdownPreview(content.value, media.preview()));
-      previewButton.textContent = previewing ? t('编辑') : t('预览');
+      previewButton.textContent = previewing ? t('仅源码') : t('实时预览');
+      previewButton.setAttribute('aria-label', previewing ? t('编辑') : t('预览'));
+      previewButton.setAttribute('aria-pressed', String(previewing));
+      if (previewing) markdownEditor.focus();
+      else content.focus();
       changed();
     },
     'link-button',
   );
+  previewButton.setAttribute('aria-label', t('预览'));
   let pendingAccess;
   const accessDescription = el('p', { class: 'description' }),
     accessButton = button(t('允许访问此网站并重试'), async () => {
@@ -209,8 +318,7 @@ export function createEditor(
       el('span', { class: 'field-label' }, t('内容 · Markdown')),
       previewButton,
     ),
-    content,
-    preview,
+    el('div', { class: 'markdown-editor-layout' }, content, codeHost, preview),
     media.root,
     field(t('来源'), source),
   );
@@ -620,14 +728,17 @@ export function createEditor(
     tab.dataset.type = type;
     tabs.append(tab);
   }
+  const summaryField = field(t('人工总结（可选）'), summary);
+  const organizationField = el('label', { class: 'checkbox-line' }, organization, t('已整理'));
+  summaryField.hidden = panel;
+  organizationField.hidden = panel;
   const extra = el(
     'div',
     { class: 'editor-extra' },
-    field(t('标签'), tags),
-    field(t('人工总结（可选）'), summary),
-    el('label', { class: 'checkbox-line' }, organization, t('已整理')),
+    el('div', { class: 'field' }, el('span', { class: 'field-label' }, t('标签')), tagControl),
+    summaryField,
+    organizationField,
   );
-  extra.hidden = panel;
   root.classList.toggle('simple-editor', simple);
   root.append(
     tabs,
@@ -719,6 +830,7 @@ export function createEditor(
       ui: {
         listMode,
         previewing,
+        tagEntry: tagEntry.value,
         closeTabs: closeTabs.checked,
         urlInput: urlInput.value,
         urlTitle: urlTitle.value,
@@ -765,6 +877,7 @@ export function createEditor(
     save.disabled = true;
     clearTimeout(timer);
     try {
+      if (!(await addEnteredTag())) return;
       if (media.recording) throw new Error(t('请先停止录音。'));
       await media.settle();
       if (record.type === 'list') commitEntry();
@@ -818,15 +931,9 @@ export function createEditor(
   const unsubscribeTags = db.onChange((_kind, detail) => {
     if (!detail?.tagRename) return;
     const { from, to } = detail.tagRename;
-    tags.value = [
-      ...new Set(
-        tags.value
-          .split(/[,，\n]/)
-          .map((tag) => tag.trim())
-          .filter(Boolean)
-          .map((tag) => (tag === from ? to : tag)),
-      ),
-    ].join(', ');
+    if (selectedTags.delete(from)) selectedTags.add(to);
+    availableTags = availableTags.map((tag) => (tag === from ? to : tag));
+    renderTags();
   });
   tabs.hidden = !panel && !!row?.rev;
   render();
@@ -863,6 +970,7 @@ export function createEditor(
           record = next;
           if (!title.value.trim()) title.value = incoming.title;
           content.value = next.content;
+          markdownEditor.setValue(content.value);
           source.value = [
             ...new Set(
               [...source.value.split('\n'), ...incoming.sources.map((s) => s.url)].filter(Boolean),
@@ -892,6 +1000,7 @@ export function createEditor(
       disposed = true;
       clearTimeout(timer);
       media.destroy();
+      markdownEditor.destroy();
       unsubscribeTags();
       preview.querySelector('.markdown')?.dispose?.();
       snapshotDisplay.querySelectorAll('.asset-view').forEach((v) => v.dispose?.());

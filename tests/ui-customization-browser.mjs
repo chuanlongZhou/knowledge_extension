@@ -103,6 +103,7 @@ try {
   await page.waitForFunction(() => document.querySelectorAll('#records article').length === 4);
   pass('项目归属筛选与搜索、标签、类型组合，刷新保留，离开已整理后不影响其他列表');
 
+  await page.locator('#settings').click();
   await page.locator('#theme').click();
   let dialog = page.getByRole('dialog', { name: '主题与字体', exact: true });
   assert.equal(await dialog.locator('.theme-preset').count(), 6);

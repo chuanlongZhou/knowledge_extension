@@ -121,6 +121,19 @@ export async function bindFolder(db, account, folder) {
   await db.setState('drive:binding', binding);
   return binding;
 }
+export async function rebindFolder(db, account, folder) {
+  const previous = await db.getState('drive:binding');
+  if (!previous) throw new Error(t('请先选择或新建 Google Drive 文件夹。'));
+  if (previous.accountId !== account.id)
+    throw new Error(t('当前 Google 账号与此浏览器的数据文件夹不一致，请登录原账号。'));
+  if (previous.folderId === folder.id) return previous;
+  return db.changeDriveBinding(previous, {
+    accountId: account.id,
+    email: account.email,
+    folderId: folder.id,
+    name: folder.name,
+  });
+}
 async function checkedBinding(db, drive, account) {
   const binding = await db.getState('drive:binding');
   if (!binding) throw new Error(t('请先选择或新建 Google Drive 文件夹。'));

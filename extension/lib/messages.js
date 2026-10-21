@@ -570,6 +570,13 @@ Google Drive 操作未完成，浏览器数据仍保留。|Google Drive did not 
 选择此简化版在同一 Google 账号下创建的文件夹，然后点击同步下载。|Select a folder created by this edition under the same Google account, then download.|Choisissez un dossier créé par cette édition avec le même compte Google, puis téléchargez.|このバージョンで同じ Google アカウントに作成したフォルダを選び、同期ダウンロードしてください。
 未找到此简化版的数据文件夹。若来自旧版，请先在旧版导出完整 ZIP，再在这里导入并上传。|No data folder found for this edition. For older editions, export a full ZIP first, then import and upload here.|Aucun dossier de cette édition trouvé. Depuis une ancienne version, exportez un ZIP complet, puis importez-le et envoyez-le ici.|データフォルダが見つかりません。旧バージョンからは完全 ZIP を書き出し、ここで読み込んでアップロードしてください。
 当前数据文件夹|Current data folder|Dossier actuel|現在のデータフォルダ
+更换数据文件夹|Change data folder|Changer de dossier de données|データフォルダを変更
+目标数据文件夹|Destination data folder|Dossier de destination|変更先のデータフォルダ
+切换到所选文件夹|Switch to selected folder|Utiliser le dossier sélectionné|選択したフォルダに切り替える
+新建并切换文件夹|Create and switch folder|Créer et utiliser un nouveau dossier|新しいフォルダを作成して切り替える
+没有其他可选的数据文件夹。|No other data folder is available.|Aucun autre dossier de données disponible.|選択できる他のデータフォルダがありません。
+切换只改变本浏览器的同步目标；本地记录与原目录文件保留。切换后请先下载目标目录，再上传。|Switching changes this browser’s sync destination. Local records and files in the old folder remain. Download from the new folder before uploading.|Le changement modifie la destination de synchronisation de ce navigateur. Les fiches locales et l’ancien dossier restent intacts. Téléchargez le nouveau dossier avant tout envoi.|切り替えはこのブラウザの同期先だけを変更します。ローカルの記録と元のフォルダのファイルは残ります。切り替え後は先にダウンロードしてください。
+已切换到“{0}”。请先同步下载目标目录。|Switched to “{0}”. Download from the destination folder first.|Dossier « {0} » sélectionné. Téléchargez d’abord son contenu.|「{0}」に切り替えました。先に変更先のフォルダからダウンロードしてください。
 当前文件夹：{0}|Current folder: {0}|Dossier actuel : {0}|現在のフォルダ：{0}
 尚未选择文件夹|No folder selected|Aucun dossier sélectionné|フォルダ未選択
 请选择或新建数据文件夹。|Choose or create a data folder.|Choisissez ou créez un dossier de données.|データフォルダを選択または作成してください。
@@ -703,6 +710,8 @@ Object.assign(
 内容 · Markdown|Content · Markdown|Contenu · Markdown|本文 · Markdown
 Markdown 源码|Markdown source|Source Markdown|Markdown ソース
 预览|Preview|Aperçu|プレビュー
+实时预览|Live preview|Aperçu en direct|ライブプレビュー
+仅源码|Code only|Code seulement|コードのみ
 预览 {0}|Preview {0}|Aperçu de {0}|{0} をプレビュー
 人工总结|Summary|Résumé|要約
 人工总结（可选）|Summary (optional)|Résumé (facultatif)|要約（任意）
@@ -745,6 +754,8 @@ Markdown 源码|Markdown source|Source Markdown|Markdown ソース
 ＋ 新建标签…|＋ New tag…|＋ Nouvelle étiquette…|＋ 新しいタグ…
 点击 ＋ 新建标签|Click ＋ to create a tag|Cliquez sur ＋ pour créer une étiquette|＋ を押してタグを作成
 选择标签|Choose tags|Choisir des étiquettes|タグを選択
+选择标签或输入新标签|Choose or enter a tag|Choisir ou saisir une étiquette|タグを選択または入力
+创建新标签“{0}”？|Create new tag “{0}”?|Créer l’étiquette « {0} » ?|新しいタグ「{0}」を作成しますか？
 例如：工作、学习、待读|e.g. work, study, reading|Ex. travail, études, à lire|例：仕事、勉強、あとで読む
 用逗号分隔|Separate with commas|Séparez par des virgules|カンマで区切る
 用逗号分隔，如：学习, 待阅读|Comma-separated, e.g. study, to read|Séparez par des virgules, ex. études, à lire|カンマで区切る。例：勉強, あとで読む
@@ -828,6 +839,15 @@ Markdown 源码|Markdown source|Source Markdown|Markdown ソース
 记录已不存在。|This record no longer exists.|Cette fiche n’existe plus.|この記録は既にありません。
 目标已不存在。|The target no longer exists.|La cible n’existe plus.|移動先は既にありません。
 项目已保存。|Project saved.|Projet enregistré.|プロジェクトを保存しました。
+展开子项目|Expand subprojects|Déplier les sous-projets|サブプロジェクトを展開
+折叠子项目|Collapse subprojects|Replier les sous-projets|サブプロジェクトを折りたたむ
+拖动排序项目|Drag to reorder projects|Faire glisser pour réorganiser les projets|ドラッグしてプロジェクトを並べ替え
+调整项目与标签区域高度|Resize projects and tags|Redimensionner les projets et les étiquettes|プロジェクトとタグの領域の高さを調整
+整理工具|Organize tools|Outils de classement|整理ツール
+添加|Add|Ajouter|追加
+拖动排序网站|Drag to reorder website|Faire glisser pour réorganiser le site|ドラッグしてサイトを並べ替え
+拖动左侧把手调整顺序。|Drag the handle to change the order.|Faites glisser la poignée pour changer l’ordre.|ハンドルをドラッグして順序を変更します。
+图片尚未保存到本地。|The image is not saved locally yet.|L’image n’est pas encore enregistrée en local.|画像はまだローカルに保存されていません。
 `),
   ),
 );

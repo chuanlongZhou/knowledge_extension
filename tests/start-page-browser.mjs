@@ -191,16 +191,19 @@ try {
   await poll(async () => (await page.locator('#favorite-cards .favorite-card').count()) === 8);
   assert.equal(await page.locator('#group-cards .group-card').count(), 1);
   assert.match(await page.locator('#group-cards').innerText(), /3 待浏览/);
-  assert.equal(await page.locator('#project-cards .project-card').count(), 3);
+  assert.equal(await page.locator('#project-cards .project-card').count(), 2);
+  assert.doesNotMatch(await page.locator('#project-cards').innerText(), /阅读与摘录/);
   await page.getByLabel('添加 Todo', { exact: true }).fill('启动页新增待办');
   await page.getByRole('button', { name: '保存 Todo', exact: true }).click();
   await page
     .locator('#todo-items')
     .getByRole('button', { name: '启动页新增待办', exact: true })
     .click();
-  let dialog = page.getByRole('dialog', { name: '编辑 Todo', exact: true });
-  await dialog.getByLabel('Todo 内容', { exact: true }).fill('启动页修改后的待办');
-  await dialog.getByRole('button', { name: '保存', exact: true }).click();
+  await page
+    .locator('#todo-items')
+    .getByLabel('Todo 内容', { exact: true })
+    .fill('启动页修改后的待办');
+  await page.locator('#todo-items').getByLabel('Todo 内容', { exact: true }).press('Enter');
   await page.getByLabel('完成 启动页修改后的待办', { exact: true }).check();
   await page.getByLabel('添加 Idea', { exact: true }).fill('记录一个新想法');
   await page.getByRole('button', { name: '保存 Idea', exact: true }).click();
@@ -208,9 +211,8 @@ try {
     .locator('#idea-items')
     .getByRole('button', { name: '记录一个新想法', exact: true })
     .click();
-  dialog = page.getByRole('dialog', { name: '编辑 Idea', exact: true });
-  await dialog.getByLabel('Idea 内容', { exact: true }).fill('修改后的想法');
-  await dialog.getByRole('button', { name: '保存', exact: true }).click();
+  await page.locator('#idea-items').getByLabel('Idea 内容', { exact: true }).fill('修改后的想法');
+  await page.locator('#idea-items').getByLabel('Idea 内容', { exact: true }).press('Enter');
   await poll(() =>
     page.evaluate(async () => {
       const { Database } = await import('./lib/db.js');
@@ -331,7 +333,7 @@ try {
     .locator('#favorite-cards')
     .getByRole('button', { name: '查看 我的长期阅读计划' })
     .click();
-  dialog = page.getByRole('dialog', { name: '记录详情', exact: true });
+  let dialog = page.getByRole('dialog', { name: '记录详情', exact: true });
   await dialog.getByRole('button', { name: '置顶', exact: true }).click();
   await page.locator('#pinned-cards .pinned-card').first().waitFor();
   assert.equal(
@@ -365,10 +367,16 @@ try {
   }
   await page.getByRole('button', { name: '管理常用网站', exact: true }).click();
   dialog = page.getByRole('dialog', { name: '管理常用网站', exact: true });
-  await dialog.getByRole('button', { name: '上移 我的工作台', exact: true }).click();
+  await dialog
+    .getByRole('button', { name: '拖动排序网站 我的工作台', exact: true })
+    .dragTo(dialog.locator('.dock-edit-row').filter({ hasText: '常用文档' }), {
+      targetPosition: { x: 20, y: 5 },
+    });
   await poll(
     async () => (await page.locator('#site-dock .dock-link').allTextContents())[0] === '我的工作台',
   );
+  assert.equal(await dialog.isVisible(), true);
+  assert.match(await dialog.locator('.dock-edit-row').first().innerText(), /我的工作台/);
   await page
     .getByRole('dialog', { name: '管理常用网站', exact: true })
     .getByRole('button', { name: '关闭', exact: true })
@@ -446,6 +454,21 @@ try {
     return notes.map((r) => r.id);
   });
   await sorting.goto(base + 'dashboard.html');
+  const rootProjects = sorting.locator('#projects-nav > .project-branch > .project-nav');
+  await poll(async () => (await rootProjects.count()) === 2);
+  const rootIds = await rootProjects.evaluateAll((nodes) =>
+    nodes.map((node) => node.dataset.projectId),
+  );
+  await sorting
+    .locator(`.project-nav[data-project-id="${rootIds[1]}"] .project-drag-handle`)
+    .dragTo(sorting.locator(`.project-nav[data-project-id="${rootIds[0]}"]`), {
+      targetPosition: { x: 25, y: 5 },
+    });
+  await poll(
+    async () => (await rootProjects.first().getAttribute('data-project-id')) === rootIds[1],
+  );
+  await sorting.reload();
+  assert.equal(await rootProjects.first().getAttribute('data-project-id'), rootIds[1]);
   const recordIds = () =>
     sorting
       .locator('#records > article')

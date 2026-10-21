@@ -1,6 +1,7 @@
 import { t, getLanguage } from './i18n.js';
 import { safeUrl } from './model.js';
 import { icon } from './icons.js';
+import { renderMarkdown } from './markdown-vendor.js';
 
 export function el(tag, attrs = {}, ...children) {
   const node = document.createElement(tag);
@@ -73,13 +74,15 @@ export function download(name, content, mime = 'application/json') {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }
-export function assetView(descriptor, { load, local = async () => null } = {}) {
-  const root = el('div', { class: 'asset-view' }),
+export function assetView(descriptor, { load, local = async () => null, imageOnly = false } = {}) {
+  const root = el('div', { class: `asset-view${imageOnly ? ' asset-image-only' : ''}` }),
     display = el('div', { class: 'asset-display' }),
     status = el(
       'small',
       { class: 'muted' },
-      `${descriptor.kind === 'image' ? t('图片') : descriptor.kind === 'snapshot' ? t('网页快照') : t('录音')} · ${(descriptor.size_bytes / 1024).toFixed(1)} KB`,
+      imageOnly
+        ? ''
+        : `${descriptor.kind === 'image' ? t('图片') : descriptor.kind === 'snapshot' ? t('网页快照') : t('录音')} · ${(descriptor.size_bytes / 1024).toFixed(1)} KB`,
     );
   let objectUrl,
     disposed = false;
@@ -98,9 +101,11 @@ export function assetView(descriptor, { load, local = async () => null } = {}) {
           ? el('img', { src: objectUrl, alt: descriptor.name })
           : el('audio', { src: objectUrl, controls: true, preload: 'none' });
     display.replaceChildren(node);
+    root.classList.add('asset-loaded');
     if (descriptor.kind === 'image')
       node.addEventListener('error', () => {
         if (disposed || display.firstChild !== node) return;
+        root.classList.remove('asset-loaded');
         status.textContent = t('图片无法解码，请重新收集原图或导入完整备份。');
         status.className = 'error-text';
         loadButton.hidden = false;
@@ -126,7 +131,7 @@ export function assetView(descriptor, { load, local = async () => null } = {}) {
     },
     'button small',
   );
-  if (descriptor.kind === 'image')
+  if (descriptor.kind === 'image' && !imageOnly)
     root.append(
       button(
         t('下载图片'),
@@ -142,7 +147,7 @@ export function assetView(descriptor, { load, local = async () => null } = {}) {
       ),
     );
   root.append(
-    el('strong', {}, descriptor.name),
+    ...(imageOnly ? [] : [el('strong', {}, descriptor.name)]),
     display,
     el('div', { class: 'row' }, loadButton, status),
   );
@@ -159,66 +164,95 @@ export function assetView(descriptor, { load, local = async () => null } = {}) {
   };
   return root;
 }
+function inlineImageView(descriptor, alt, { load, local } = {}) {
+  const image = el('img', { alt: alt || descriptor.name, loading: 'lazy' });
+  const status = el(
+    'small',
+    { class: 'muted' },
+    `${t('图片')} · ${(descriptor.size_bytes / 1024).toFixed(1)} KB`,
+  );
+  const link = el('a', { href: '#', download: descriptor.name }, t('下载图片'));
+  const root = el(
+    'span',
+    { class: 'markdown-inline-image' },
+    image,
+    el('span', { class: 'markdown-image-meta' }, status, link),
+  );
+  let objectUrl;
+  let disposed = false;
+  const getBlob = async () => {
+    try {
+      const blob = await local?.(descriptor);
+      if (blob) return blob;
+    } catch {
+      // A local copy may be unavailable while the synced asset can still be fetched.
+    }
+    return load?.(descriptor);
+  };
+  link.addEventListener('click', async (event) => {
+    event.preventDefault();
+    try {
+      const blob = await getBlob();
+      if (!blob) throw new Error(t('图片尚未保存到本地。'));
+      download(descriptor.name, blob, descriptor.mime_type);
+    } catch (error) {
+      status.textContent = error.message;
+      status.className = 'error-text';
+    }
+  });
+  image.addEventListener('error', () => {
+    if (disposed) return;
+    status.textContent = t('图片无法解码，请重新收集原图或导入完整备份。');
+    status.className = 'error-text';
+  });
+  getBlob()
+    .then((blob) => {
+      if (!blob || disposed) return;
+      objectUrl = URL.createObjectURL(blob);
+      image.src = objectUrl;
+    })
+    .catch((error) => {
+      if (disposed) return;
+      status.textContent = error.message;
+      status.className = 'error-text';
+    });
+  root.dispose = () => {
+    disposed = true;
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+  };
+  return root;
+}
 export function markdownPreview(text, { attachments = [], load, local } = {}) {
   const root = el('div', { class: 'markdown' });
-  let code = null,
-    codeLines = [];
   const assets = new Map(attachments.map((a) => [a.path, a]));
-  function paragraph(line) {
-    const row = el('div', { class: 'markdown-line' });
-    let index = 0;
-    const regex =
-      /(!?)\[((?:\\.|[^\]\\])*)\]\((assets\/[a-f0-9]{64}\.[a-z0-9]+|https?:\/\/[^\s)]+)\)/g;
-    for (const match of line.matchAll(regex)) {
-      row.append(document.createTextNode(line.slice(index, match.index)));
-      const descriptor = assets.get(match[3]);
-      if (descriptor) row.append(assetView(descriptor, { load, local }));
-      else if (safeUrl(match[3])) {
-        const href = safeUrl(match[3]);
-        const caption = match[2].replace(/\\([\\`*_[\]<>])/g, '$1') || match[3];
-        row.append(
-          match[1]
-            ? el(
-                'a',
-                { href, target: '_blank', rel: 'noopener noreferrer' },
-                el('img', {
-                  src: href,
-                  alt: caption,
-                  loading: 'lazy',
-                  referrerpolicy: 'no-referrer',
-                }),
-              )
-            : el('a', { href, target: '_blank', rel: 'noopener noreferrer' }, caption),
-        );
-      } else row.append(document.createTextNode(match[0]));
-      index = match.index + match[0].length;
-    }
-    row.append(document.createTextNode(line.slice(index) || '\u00a0'));
-    return row;
+  root.innerHTML = renderMarkdown(text);
+  for (const image of [...root.querySelectorAll('img')]) {
+    const source = image.getAttribute('src') || '';
+    const descriptor = assets.get(source);
+    if (descriptor?.kind === 'image')
+      image.replaceWith(inlineImageView(descriptor, image.alt, { load, local }));
+    else if (descriptor) image.replaceWith(assetView(descriptor, { load, local }));
+    else if (safeUrl(source)) {
+      image.src = safeUrl(source);
+      image.loading = 'lazy';
+      image.referrerPolicy = 'no-referrer';
+      image.classList.add('markdown-image');
+    } else image.remove();
   }
-  for (const line of text.split('\n')) {
-    if (line.startsWith('```')) {
-      if (code) {
-        code.textContent = codeLines.join('\n');
-        code = null;
-        codeLines = [];
-      } else {
-        code = el('code');
-        root.append(el('pre', {}, code));
-      }
-    } else if (code) codeLines.push(line);
-    else if (/^#{1,4} /.test(line)) {
-      const level = line.match(/^#+/)[0].length;
-      root.append(el(`h${level}`, {}, line.slice(level + 1)));
-    } else if (/^[-*] /.test(line)) {
-      const bullet = paragraph(line.slice(2));
-      bullet.classList.add('markdown-bullet');
-      bullet.prepend(document.createTextNode('• '));
-      root.append(bullet);
-    } else if (line.trim() === '---') root.append(el('hr'));
-    else root.append(paragraph(line));
+  for (const link of [...root.querySelectorAll('a')]) {
+    if (link.closest('.markdown-inline-image')) continue;
+    const href = link.getAttribute('href') || '';
+    const descriptor = assets.get(href);
+    if (descriptor) link.replaceWith(assetView(descriptor, { load, local }));
+    else if (safeUrl(href)) {
+      link.href = safeUrl(href);
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+    } else link.replaceWith(document.createTextNode(link.textContent));
   }
-  if (code) code.textContent = codeLines.join('\n');
-  root.dispose = () => root.querySelectorAll('.asset-view').forEach((view) => view.dispose?.());
+  root.dispose = () =>
+    root
+      .querySelectorAll('.asset-view, .markdown-inline-image')
+      .forEach((view) => view.dispose?.());
   return root;
 }

@@ -6,6 +6,7 @@ import { newRecord } from '../extension/lib/model.js';
 import { GoogleDrive, DriveError } from '../extension/lib/drive-client.js';
 import {
   bindFolder,
+  rebindFolder,
   syncDrive,
   resolveDriveConflict,
   organizeDrive,
@@ -50,6 +51,60 @@ async function connect(a, b, drive) {
   await bindFolder(b, account, await drive.folder(folder.id));
   return folder;
 }
+
+test('switching a Drive folder preserves local and old cloud data while resetting folder sync state', async (t) => {
+  const { server, a, drive, sync } = setup(t);
+  const account = await drive.authorize();
+  const oldFolder = await drive.createFolder('Old notes');
+  const nextFolder = await drive.createFolder('New notes');
+  await bindFolder(a, account, oldFolder);
+  const note = newRecord({ title: 'Keep this note' });
+  await a.save(note);
+  await sync(a, 'upload');
+  const oldFile = (await drive.files(oldFolder.id)).find(
+    (file) => file.appProperties?.record_id === note.id,
+  );
+  assert.ok(oldFile);
+  assert.equal((await a.driveLinks()).size > 0, true);
+  await a.setState('drive:conflicts', [{ id: note.id }]);
+  await a.setState('drive:resolutions', { [note.id]: { choice: 'local' } });
+  await a.cacheDriveFile(oldFile.id, { folderId: oldFolder.id, version: 'old' });
+
+  await rebindFolder(a, account, await drive.folder(nextFolder.id));
+  assert.equal((await a.getState('drive:binding')).folderId, nextFolder.id);
+  assert.equal((await a.get(note.id)).record.title, 'Keep this note');
+  assert.equal((await a.driveLinks()).size, 0);
+  assert.deepEqual(await a.getState('drive:conflicts', []), []);
+  assert.deepEqual(await a.getState('drive:resolutions', {}), {});
+  assert.equal(await a.cachedDriveFile(oldFile.id), null);
+  assert.ok(server.items.has(oldFile.id));
+
+  await sync(a, 'upload');
+  const newFile = (await drive.files(nextFolder.id)).find(
+    (file) => file.appProperties?.record_id === note.id,
+  );
+  assert.ok(newFile);
+  assert.notEqual(newFile.id, oldFile.id);
+  await assert.rejects(rebindFolder(a, { id: 'bob' }, oldFolder), /账号/);
+});
+
+test('switching to a populated folder reports different copies as conflicts', async (t) => {
+  const { a, b, drive, sync } = setup(t);
+  const account = await drive.authorize();
+  const oldFolder = await drive.createFolder('Original');
+  const nextFolder = await drive.createFolder('Target');
+  await bindFolder(a, account, oldFolder);
+  await bindFolder(b, account, nextFolder);
+  const local = newRecord({ title: 'Local version' });
+  await a.save(local);
+  await b.save({ ...local, title: 'Remote version', content: 'Different content' });
+  await sync(b, 'upload');
+
+  await rebindFolder(a, account, await drive.folder(nextFolder.id));
+  assert.equal((await sync(a, 'download')).conflicts, 1);
+  assert.equal((await a.get(local.id)).record.title, 'Local version');
+  assert.equal((await a.getState('drive:conflicts', []))[0].id, local.id);
+});
 
 const aboutUrl = 'https://www.googleapis.com/drive/v3/about?fields=user';
 
