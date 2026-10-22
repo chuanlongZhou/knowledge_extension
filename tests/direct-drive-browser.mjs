@@ -300,11 +300,9 @@ globalThis.verifyNativeDriveFetch = async () => {
   await b.page.locator('#records article').filter({ hasText: '直接同步的笔记' }).waitFor();
   await b.page.locator(`#records [data-record-id="${id}"] .record-top h2`).click();
   const imagePreview = b.page.getByRole('dialog', { name: '预览记录', exact: true });
-  await imagePreview.locator('.asset-display img').evaluate((image) => image.decode());
-  assert.equal(
-    await imagePreview.locator('.asset-display img').evaluate((image) => image.naturalWidth),
-    128,
-  );
+  const downloadedImage = imagePreview.getByRole('img', { name: '同步图片', exact: true });
+  await downloadedImage.evaluate((image) => image.decode());
+  assert.equal(await downloadedImage.evaluate((image) => image.naturalWidth), 128);
   await imagePreview.getByRole('button', { name: '关闭', exact: true }).click();
   pass('第二设备同步下载的图片原文件完整，普通预览自动显示，无需手动加载');
   pass(

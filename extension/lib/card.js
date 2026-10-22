@@ -1,12 +1,22 @@
 import { t, msg } from './i18n.js';
-import { el, button, dateLabel, assetView } from './dom.js';
+import { el, button, dateLabel, assetView, linkedText } from './dom.js';
 import { loadAsset } from './assets.js';
 import { icon } from './icons.js';
 import { websiteLink } from './websites.js';
 import { enableWebsiteDrag, websiteDragHandle } from './website-drag.js';
+import { websiteGroupOpener } from './website-group-actions.js';
 export function typedCard(
   record,
-  { db, toggleList, toggleRead, toggleRemoved, listMode = true, onListMode, moveWebsite } = {},
+  {
+    db,
+    toggleList,
+    toggleRead,
+    toggleRemoved,
+    listMode = true,
+    onListMode,
+    moveWebsite,
+    websiteScrollTop = 0,
+  } = {},
 ) {
   const root = el('div', { class: 'typed-preview' });
   root.addEventListener('click', (event) => {
@@ -62,7 +72,10 @@ export function typedCard(
                         onchange: stop((event) => toggleList(item.id, event.target.checked)),
                       })
                     : el('span', {}, '•'),
-                  el('span', {}, item.text || t('空项目')),
+                  linkedText(item.text || t('空项目')),
+                  ...(record.attachments || [])
+                    .filter((a) => a.storage === 'drive' && a.item_id === item.id)
+                    .map((a) => assetView(a)),
                 ),
           ),
       );
@@ -77,41 +90,70 @@ export function typedCard(
         msg`${record.url_count || 0} 个网页 · ${record.unread_count || 0} 个未读`,
       ),
     );
-    for (const item of record.url_preview || []) {
-      const link = websiteLink(item);
-      if (!record.deleted_at && !item.removed_at && moveWebsite)
-        enableWebsiteDrag(link, record.id, item);
+    const websiteRows = el('div', {
+      class: 'website-card-list',
+      tabindex: 0,
+      role: 'region',
+      'aria-label': t('网页列表'),
+      onclick: (event) => event.stopPropagation(),
+    });
+    if (!record.deleted_at)
       root.append(
-        el(
-          'div',
-          {
-            class: `website-preview-line${item.read_at ? ' completed' : ''}${item.removed_at ? ' removed' : ''}`,
-            'data-website-id': item.id,
-          },
-          !record.deleted_at && !item.removed_at && moveWebsite
-            ? websiteDragHandle(record.id, item, moveWebsite)
-            : null,
-          el('input', {
-            type: 'checkbox',
-            checked: !!item.read_at,
-            'aria-label': msg`已读 ${item.title || item.url}`,
-            onclick: (event) => event.stopPropagation(),
-            onchange: stop((event) => toggleRead(item.id, event.target.checked)),
-          }),
-          link,
-          el(
-            'button',
-            {
-              type: 'button',
-              class: 'icon-button',
-              'aria-label': msg`${item.removed_at ? t('恢复') : t('删除')}网页 ${item.title || item.url}`,
-              onclick: stop(() => toggleRemoved?.(item.id, !item.removed_at)),
-            },
-            item.removed_at ? t('恢复') : icon('trash'),
-          ),
-        ),
+        websiteGroupOpener(async () => (db ? (await db.get(record.id))?.record : record)),
       );
+    root.append(websiteRows);
+    function renderWebsites(items) {
+      websiteRows.replaceChildren();
+      for (const item of items) {
+        const link = websiteLink(item);
+        if (!record.deleted_at && !item.removed_at && moveWebsite)
+          enableWebsiteDrag(link, record.id, item);
+        websiteRows.append(
+          el(
+            'div',
+            {
+              class: `website-preview-line${item.read_at ? ' completed' : ''}${item.removed_at ? ' removed' : ''}`,
+              'data-website-id': item.id,
+            },
+            !record.deleted_at && !item.removed_at && moveWebsite
+              ? websiteDragHandle(record.id, item, moveWebsite)
+              : null,
+            el('input', {
+              type: 'checkbox',
+              checked: !!item.read_at,
+              'aria-label': msg`已读 ${item.title || item.url}`,
+              onclick: (event) => event.stopPropagation(),
+              onchange: stop((event) => toggleRead(item.id, event.target.checked)),
+            }),
+            link,
+            el(
+              'button',
+              {
+                type: 'button',
+                class: 'icon-button',
+                'aria-label': msg`${item.removed_at ? t('恢复') : t('删除')}网页 ${item.title || item.url}`,
+                onclick: stop(() => toggleRemoved?.(item.id, !item.removed_at)),
+              },
+              item.removed_at ? t('恢复') : icon('trash'),
+            ),
+          ),
+        );
+      }
+      websiteRows.scrollTop = websiteScrollTop;
     }
+    renderWebsites(record.url_list || record.url_preview || []);
+    // Catalog rows intentionally contain short previews. Fetch this record to make
+    // every website available in the scroll area, including pre-existing catalogs.
+    if (db)
+      db.get(record.id)
+        .then((row) => {
+          if (row?.record.type === 'website_group') renderWebsites(row.record.url_list);
+        })
+        .catch(() => {
+          websiteRows.append(
+            el('small', { class: 'error-text' }, t('网页列表读取失败，请刷新重试。')),
+          );
+        });
     root.append(
       el(
         'small',
@@ -153,6 +195,9 @@ export function typedCard(
         'small',
         { class: 'muted' },
         msg`${record.attachments.filter((a) => a.kind === 'image').length} 张图片 · ${record.attachments.filter((a) => a.kind === 'audio').length} 段录音`,
+        record.attachments.some((a) => a.storage === 'drive')
+          ? msg` · ${record.attachments.filter((a) => a.storage === 'drive').length} 个文件`
+          : '',
       ),
     );
   return root;

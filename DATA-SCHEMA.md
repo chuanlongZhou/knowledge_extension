@@ -35,7 +35,15 @@
 | `list`               | ListItem[]      | 清单专用；其他类型为 `[]`                              |
 | `url_list`           | WebsiteItem[]   | 网页组专用；其他类型为 `[]`                            |
 
-四种 v4 记录包含相同字段；专用字段必须与类型一致。没有 `purpose`、旧 `task_status`、`local_only` 或 `upload_enabled`。记录先保存在浏览器；只有用户点击同步下载或同步上传时才访问 Google Drive。捕获草稿不会自动进入收件箱或上传。
+四种 v4 记录包含相同字段；专用字段必须与类型一致。没有 `purpose`、旧 `task_status`、`local_only` 或 `upload_enabled`。记录先保存在浏览器；普通同步由用户触发。“添加文件”直接上传文件，保存记录时自动同步该记录的关联。捕获草稿不会自动进入收件箱或上传。
+
+## Drive 文件附件
+
+`attachments` 同时支持原有 SHA-256 媒体描述与云端文件描述。云端文件为 `{ id, kind: "file", storage: "drive", name, mime_type, size_bytes, created_at, drive_file_id, drive_account_id, drive_folder_id, item_id }`，不含 `path`、二进制、Base64 或本地 Blob。`id` 为附件 UUID，`drive_file_id` 为 Drive 文件 ID；预览链接由受校验的文件 ID 生成。
+
+普通记录的 `item_id` 为 null；清单的 `item_id` 必须对应 `list` 内非分隔线条目的固定 ID，Todo / Idea 均可一对多。删除条目会移除其附件关联，Drive 原文件保留。文件直接分块上传至 `assets`，appProperties 的 `pkm_role` 为 `attachment`，并携带 `attachment_id`、`record_id` 与可选 `item_id`。
+
+同步下载只获取附件描述，不下载这些文件；本地备份与 Markdown 只保存描述 / 预览链接。旧版媒体附件的 SHA-256 校验、缓存与备份不变。旧客户端会拒绝未知的云端附件格式，应先升级所有设备。
 
 ## Source
 
@@ -82,6 +90,8 @@ asset_id 对应 attachments 中 MIME 为 image/png、kind 为 image 的文件。
 | `checked`     | 待办是否完成；圆点与分割线固定 false                                             |
 
 最多 5,000 项。选择 Todo 或 Idea 后添加项目或纯分割线，分别显示两种视图，仍然保存在同一条记录中。整份记录固定 ID 为 `nexus-list`；初始创建时间固定为功能发布日 `2026-10-13T00:00:00.000Z`，让不同电脑首次创建时使用相同文件路径。固定 ID 不允许用于其他类型。
+
+`text` 可包含 HTTP / HTTPS 网址或 `[名称](https://...)`。可点击链接由显示层生成，原文、条目 ID、Markdown 导出和附件关联不变，不新增链接专用字段。浏览器标签页组收集仍保存为普通 `website_group`：组名写入 title，各网址进入 url_list；Chrome 的临时 groupId / windowId 不写入记录。
 
 同浏览器重复创建采用版本检查，不能生成第二份。不同电脑同时离线编辑进入正常记录级冲突处理，保留双方，不自动覆盖或拼接。
 

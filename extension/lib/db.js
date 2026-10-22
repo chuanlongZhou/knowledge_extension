@@ -1144,6 +1144,7 @@ export class Database {
         }
         this.putRow(tx, { ...change.prepared, rev: (current?.rev || 0) + 1, dirty: false });
         for (const descriptor of change.record.attachments || []) {
+          if (descriptor.storage === 'drive') continue;
           const asset = tx.objectStore('assets').get(descriptor.id);
           asset.onsuccess = () =>
             tx.objectStore('assets').put({ ...asset.result, id: descriptor.id, descriptor });

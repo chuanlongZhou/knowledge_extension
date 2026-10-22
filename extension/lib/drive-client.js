@@ -127,7 +127,7 @@ export class GoogleDrive {
     if (!user?.permissionId) throw new Error(t('无法确认 Google 账号。'));
     return { id: user.permissionId, name: user.displayName || '', email: user.emailAddress || '' };
   }
-  async response(url, { method = 'GET', headers = {}, body, maxBytes = 8 * 1024 * 1024 } = {}) {
+  async request(url, { method = 'GET', headers = {}, body, acceptedStatuses = [], signal } = {}) {
     const target = new URL(url);
     if (
       target.origin !== 'https://www.googleapis.com' ||
@@ -142,9 +142,11 @@ export class GoogleDrive {
         body,
         redirect: 'error',
         cache: 'no-store',
-        signal: AbortSignal.timeout(120000),
+        signal: signal
+          ? AbortSignal.any([signal, AbortSignal.timeout(120000)])
+          : AbortSignal.timeout(120000),
       });
-      if (!response.ok) {
+      if (!response.ok && !acceptedStatuses.includes(response.status)) {
         const failure = await readFailure(response, this.accessToken);
         const retryable =
           [429, 500, 502, 503, 504].includes(response.status) ||
@@ -169,8 +171,11 @@ export class GoogleDrive {
           failure.reasons,
         );
       }
-      return readBytes(response, maxBytes);
+      return response;
     }
+  }
+  async response(url, { maxBytes = 8 * 1024 * 1024, ...options } = {}) {
+    return readBytes(await this.request(url, options), maxBytes);
   }
   async json(url, options) {
     const bytes = await this.response(url, options);
@@ -316,6 +321,61 @@ export class GoogleDrive {
   async generateId() {
     const data = await this.json(`${API}/files/generateIds?count=1&space=drive&type=files`);
     return data.ids[0];
+  }
+  async uploadAttachment(folderId, file, properties, onProgress = () => {}, signal) {
+    if (!validId(folderId)) throw new Error(t('文件夹 ID 无效。'));
+    const id = await this.generateId();
+    const mimeType = file.type || 'application/octet-stream';
+    const session = await this.request(
+      'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,size',
+      {
+        method: 'POST',
+        signal,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Upload-Content-Type': mimeType,
+          'X-Upload-Content-Length': String(file.size),
+        },
+        body: JSON.stringify({
+          id,
+          name: file.name,
+          mimeType,
+          parents: [folderId],
+          appProperties: properties,
+        }),
+      },
+    );
+    const location = session.headers.get('Location');
+    if (!location) throw new Error(t('Google Drive 未返回上传地址，请重试。'));
+    // File.slice() keeps the file disk-backed; never read file bytes into JS memory.
+    const chunkSize = 8 * 1024 * 1024;
+    let offset = 0;
+    do {
+      const end = Math.min(offset + chunkSize, file.size);
+      const result = await this.request(location, {
+        method: 'PUT',
+        signal,
+        headers: {
+          'Content-Type': mimeType,
+          'Content-Range': file.size ? `bytes ${offset}-${end - 1}/${file.size}` : 'bytes */0',
+        },
+        body: file.slice(offset, end),
+        acceptedStatuses: [308],
+      });
+      if (result.status !== 308) {
+        const metadata = JSON.parse(new TextDecoder().decode(await readBytes(result, 64 * 1024)));
+        if (metadata.id !== id || Number(metadata.size) !== file.size)
+          throw new Error(t('Google Drive 上传校验失败，请重试。'));
+        onProgress(file.size, file.size);
+        return metadata;
+      }
+      const next = Number(/^bytes=0-(\d+)$/.exec(result.headers.get('Range') || '')?.[1]) + 1;
+      if (!Number.isSafeInteger(next) || next <= offset || next > end || next >= file.size)
+        throw new Error(t('Google Drive 上传进度异常，请重新选择文件。'));
+      offset = next;
+      onProgress(offset, file.size);
+    } while (offset < file.size);
+    throw new Error(t('Google Drive 上传校验失败，请重试。'));
   }
   async download(file, maxBytes = 8 * 1024 * 1024) {
     if (!validId(file.id)) throw new Error(t('云端文件 ID 无效。'));

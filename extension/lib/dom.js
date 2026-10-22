@@ -1,7 +1,31 @@
 import { t, getLanguage } from './i18n.js';
-import { safeUrl } from './model.js';
+import { safeUrl, drivePreviewUrl } from './model.js';
 import { icon } from './icons.js';
 import { renderMarkdown } from './markdown-vendor.js';
+import { textLinkParts } from './text-links.js';
+
+export function linkedText(text, { linksOnly = false } = {}) {
+  return el(
+    'span',
+    { class: 'linked-text' },
+    textLinkParts(text).map((part) =>
+      part.href
+        ? el(
+            'a',
+            {
+              href: part.href,
+              target: '_blank',
+              rel: 'noopener noreferrer',
+              onclick: (event) => event.stopPropagation(),
+            },
+            part.text,
+          )
+        : linksOnly
+          ? null
+          : part.text,
+    ),
+  );
+}
 
 export function el(tag, attrs = {}, ...children) {
   const node = document.createElement(tag);
@@ -75,6 +99,26 @@ export function download(name, content, mime = 'application/json') {
   setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }
 export function assetView(descriptor, { load, local = async () => null, imageOnly = false } = {}) {
+  if (descriptor.storage === 'drive')
+    return el(
+      'div',
+      { class: 'asset-view drive-attachment' },
+      el(
+        'a',
+        {
+          href: drivePreviewUrl(descriptor.drive_file_id),
+          target: '_blank',
+          rel: 'noopener noreferrer',
+          title: t('在 Google Drive 中预览'),
+        },
+        descriptor.name,
+      ),
+      el(
+        'small',
+        { class: 'muted' },
+        `${(descriptor.size_bytes / 1024).toFixed(1)} KB · Google Drive`,
+      ),
+    );
   const root = el('div', { class: `asset-view${imageOnly ? ' asset-image-only' : ''}` }),
     display = el('div', { class: 'asset-display' }),
     status = el(

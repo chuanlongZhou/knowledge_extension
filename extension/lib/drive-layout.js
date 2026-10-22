@@ -33,6 +33,7 @@ export function directoryIds(rootId, files) {
 export function fileDirectory(file) {
   const role = file.appProperties?.pkm_role;
   if (role === 'record') return 'records';
+  if (role === 'attachment') return 'assets';
   if (role === 'tag_library' || role === 'shortcut_library') return 'metadata';
   if (role === 'asset')
     return file.mimeType?.startsWith('image/')

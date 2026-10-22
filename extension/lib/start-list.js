@@ -11,6 +11,11 @@ export async function editStartList(db, operation) {
         {
           ...record,
           list,
+          attachments: record.attachments.filter(
+            (a) =>
+              a.storage !== 'drive' ||
+              list.some((item) => item.kind === 'item' && item.id === a.item_id),
+          ),
           content: listDocument(list, record.content, record.list),
           updated_at: new Date().toISOString(),
         },

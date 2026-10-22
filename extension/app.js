@@ -1580,6 +1580,12 @@ function renderSelection() {
   );
 }
 function renderCards() {
+  const websiteScrollPositions = new Map(
+    [...$('records').querySelectorAll('[data-record-id]')].map((card) => [
+      card.dataset.recordId,
+      card.querySelector('.website-card-list')?.scrollTop || 0,
+    ]),
+  );
   $('records')
     .querySelectorAll('.asset-view')
     .forEach((view) => view.dispose?.());
@@ -1702,6 +1708,9 @@ function renderCards() {
                   'span',
                   { class: 'badge' },
                   msg`${m.attachments.filter((a) => a.kind === 'image').length} 图片 · ${m.attachments.filter((a) => a.kind === 'audio').length} 音频`,
+                  m.attachments.some((a) => a.storage === 'drive')
+                    ? msg` · ${m.attachments.filter((a) => a.storage === 'drive').length} 个文件`
+                    : '',
                 ),
               ]
             : []),
@@ -1740,6 +1749,7 @@ function renderCards() {
       main.append(
         typedCard(m, {
           db,
+          websiteScrollTop: websiteScrollPositions.get(m.id) || 0,
           moveWebsite: !m.deleted_at ? act((id) => openWebsiteMove(m.id, id)) : null,
           toggleRemoved: act((id, removed) => toggleWebsiteRemoved(m.id, id, removed)),
           listMode: state.cardModes[m.id] !== false,
@@ -2095,15 +2105,28 @@ async function editorData(id, explicitDraft, savedKey) {
   };
 }
 async function saveEditorRecord(value, row) {
+  let result;
   if (row?.rev) {
     await db.save(value, { expectedRev: row.rev });
-    return { status: 'saved' };
-  }
-  if (value.type === 'list') {
+    result = { status: 'saved' };
+  } else if (value.type === 'list') {
     await db.save(value, { expectedRev: 0 });
-    return { status: 'saved' };
+    result = { status: 'saved' };
+  } else result = await captureInto(db, value);
+  if (
+    result.status === 'saved' &&
+    [...value.attachments, ...(row?.record.attachments || [])].some((a) => a.storage === 'drive')
+  ) {
+    try {
+      const response = await driveCommand('sync', { direction: 'upload', recordIds: [value.id] });
+      if (response.conflicts || response.missingRemote)
+        throw new Error(t('附件关联存在云端冲突，请在设置中处理后重新同步。'));
+      result.attachmentsSynced = true;
+    } catch (error) {
+      result.syncError = error.message;
+    }
   }
-  return captureInto(db, value);
+  return result;
 }
 async function openRecord(id) {
   const row = await db.get(id);
@@ -2272,7 +2295,7 @@ async function openEditor(id, { value, key, simple = false, parentDialog = null,
     onSave: saveEditorRecord,
     onNavigate: act(navigate),
     onCancel: async (result) => {
-      if (result?.saved) toast(t('已保存到本机，等待同步。'));
+      if (result?.saved) toast(result.message || t('已保存到本机，等待同步。'));
       dialog.close();
       refreshSoon();
     },
@@ -3207,4 +3230,4 @@ initialize().catch((error) => {
 window.addEventListener('hashchange', () => {
   if (location.hash === '#settings') act(openSettings)();
 });
-// Drive uploads and downloads run only after an explicit user action.
+// Record sync is manual, except saving a record with Drive file attachments.

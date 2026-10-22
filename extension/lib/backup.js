@@ -11,10 +11,9 @@ function descriptorsOf(backup) {
     ),
   ];
   return new Map(
-    [...(backup.asset_catalog || []), ...records.flatMap((r) => r.attachments || [])].map((a) => [
-      a.id,
-      normalizeAttachment(a),
-    ]),
+    [...(backup.asset_catalog || []), ...records.flatMap((r) => r.attachments || [])]
+      .filter((a) => a.storage !== 'drive')
+      .map((a) => [a.id, normalizeAttachment(a)]),
   );
 }
 export async function buildMarkdownExport(
@@ -32,6 +31,7 @@ export async function buildMarkdownExport(
   for (const { record } of records) {
     if (record.kind === 'tombstone') continue;
     for (const attachment of record.attachments) {
+      if (attachment.storage === 'drive') continue;
       const descriptor = normalizeAttachment(attachment);
       assets.set(descriptor.id, descriptor);
     }
@@ -48,7 +48,7 @@ export async function buildMarkdownExport(
   }
   files.set(
     'README.txt',
-    `GUGA Knowledge Markdown 导出 · ${EXPORT_GROUPS[groupBy]}\n打开 notes 中以原名称命名的 .md 文件；多项目 / 多标签的记录在各目录提供阅读副本，附件在 assets 只保存一份。export-index.json 对应记录 ID 与阅读路径。\n请保持目录结构与相对位置。在线引用的图片需要联网且原站允许访问。\n本包用于阅读；完整恢复请使用“完整 ZIP”。\n`,
+    `GUGA Knowledge Markdown 导出 · ${EXPORT_GROUPS[groupBy]}\n打开 notes 中以原名称命名的 .md 文件；多项目 / 多标签的记录在各目录提供阅读副本，媒体附件在 assets 只保存一份。export-index.json 对应记录 ID 与阅读路径。\n通过“添加文件”上传的云端附件只保存预览链接与关联，不下载或打包文件正文；请保留 Drive 原文件。\n请保持目录结构与相对位置。在线引用的图片需要联网且原站允许访问。\n本包用于阅读；完整恢复请使用“完整 ZIP”。\n`,
   );
   return writeZip(files);
 }
@@ -87,7 +87,7 @@ export async function buildLocalBackup(
   if (recordings.length) files.set('recovery/recordings.json', JSON.stringify(recordings));
   files.set(
     'README.txt',
-    `GUGA Knowledge 完整本地备份 · ${EXPORT_GROUPS[groupBy]}\nbackup.json 用于恢复数据；records 保存唯一记录，assets 保存原始附件。\nnotes 以原名称提供 Markdown，按选择的项目 / 标签目录整理；同一记录在多个分类中提供阅读副本，恢复时不会重复导入。图片和音频使用相对路径，请保持解压后的目录结构。export-index.json 对应 ID 与 Markdown 路径。\n文件名中的特殊字符会替换，重名添加短 ID；过长项目层级收拢到项目根目录，完整层级保存在备份数据中。\n本包不包含 Google 授权凭证。\nrecovery（如有）保存尚未完成的录音，解压后可通过添加音频恢复。\n`,
+    `GUGA Knowledge 完整本地备份 · ${EXPORT_GROUPS[groupBy]}\nbackup.json 用于恢复数据；records 保存唯一记录，assets 保存原始媒体附件。\n通过“添加文件”上传的云端附件只保存预览链接与关联，不下载或打包文件正文；请保留 Drive 原文件。\nnotes 以原名称提供 Markdown，按选择的项目 / 标签目录整理；同一记录在多个分类中提供阅读副本，恢复时不会重复导入。图片和音频使用相对路径，请保持解压后的目录结构。export-index.json 对应 ID 与 Markdown 路径。\n文件名中的特殊字符会替换，重名添加短 ID；过长项目层级收拢到项目根目录，完整层级保存在备份数据中。\n本包不包含 Google 授权凭证。\nrecovery（如有）保存尚未完成的录音，解压后可通过添加音频恢复。\n`,
   );
   progress('正在生成 ZIP…');
   return writeZip(files);

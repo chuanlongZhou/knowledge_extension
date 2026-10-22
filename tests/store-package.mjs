@@ -17,6 +17,14 @@ delete storeSource.key;
 assert.deepEqual(manifest, storeSource);
 assert.equal(Object.hasOwn(manifest, 'key'), false, 'Chrome Web Store rejects the key field');
 assert.equal(manifest.chrome_url_overrides?.newtab, 'start.html');
+const policy = manifest.content_security_policy.extension_pages;
+assert.match(policy, /(?:^|;\s*)script-src 'self';/);
+assert.match(policy, /(?:^|;\s*)style-src 'self';/);
+assert.match(
+  policy,
+  /(?:^|;\s*)style-src-elem 'self' 'unsafe-inline';/,
+  'CodeMirror mounts dynamic style sheets; the packaged CSP must allow style elements',
+);
 for (const resource of [
   manifest.background.service_worker,
   manifest.side_panel.default_path,
