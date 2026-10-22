@@ -793,3 +793,34 @@ body[data-mode='welcome'] {
     transition: none;
   }
 }
+.start-task-files {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px;
+}
+.start-task-edit {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px;
+}
+.start-task .task-text {
+  min-width: 0;
+}
+.group-card .website-group-actions {
+  margin-top: 12px;
+}
+.start-task:has(.start-file-link) {
+  flex-wrap: wrap;
+}
+.start-file-link {
+  flex-basis: 100%;
+  margin-left: 26px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}

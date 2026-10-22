@@ -9,7 +9,8 @@ import {
 } from './drive-sync.js';
 export async function handleDriveCommand(db, message) {
   const drive = new GoogleDrive();
-  if (message.command === 'sync') return syncDrive(db, message.direction, { drive });
+  if (message.command === 'sync')
+    return syncDrive(db, message.direction, { drive, recordIds: message.recordIds });
   const run = async () => {
     if (message.command === 'resolve') return resolveDriveConflict(db, message.id, message.choice);
     if (message.command === 'preview-layout' || message.command === 'organize-layout')

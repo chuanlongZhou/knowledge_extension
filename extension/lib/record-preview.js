@@ -1,10 +1,11 @@
 import { t, msg } from './i18n.js';
-import { el, button, markdownPreview, assetView } from './dom.js';
+import { el, button, markdownPreview, assetView, linkedText } from './dom.js';
 import { loadAsset } from './assets.js';
 import { websiteLink } from './websites.js';
 import { icon } from './icons.js';
 import { tagBadge } from './appearance.js';
 import { enableWebsiteDrag, websiteDragHandle } from './website-drag.js';
+import { websiteGroupOpener } from './website-group-actions.js';
 
 export async function recordPreview(db, record, { onChanged = () => {}, onMoveWebsite } = {}) {
   const root = el('article', { class: 'record-preview', 'data-preview-id': record.id });
@@ -21,6 +22,15 @@ export async function recordPreview(db, record, { onChanged = () => {}, onMoveWe
     const descriptor = record.attachments.find((a) => a.id === record.snapshot.asset_id);
     if (descriptor) root.append(assetView(descriptor, assets));
   } else if (record.type === 'website_group') {
+    if (!record.deleted_at)
+      root.append(websiteGroupOpener(async () => (await db.get(record.id))?.record || record));
+    const websites = el('div', {
+      class: 'website-preview-list',
+      tabindex: 0,
+      role: 'region',
+      'aria-label': t('网页列表'),
+    });
+    root.append(websites);
     for (const item of record.url_list) {
       const link = websiteLink(item);
       if (!record.deleted_at && !item.removed_at && onMoveWebsite)
@@ -69,7 +79,7 @@ export async function recordPreview(db, record, { onChanged = () => {}, onMoveWe
         msg`${item.removed_at ? t('恢复') : t('删除')}网页 ${item.title || item.url}`,
       );
       line.append(remove, error);
-      root.append(line);
+      websites.append(line);
     }
   } else if (record.type === 'list') {
     for (const mode of [true, false])
@@ -81,9 +91,17 @@ export async function recordPreview(db, record, { onChanged = () => {}, onMoveWe
             i.kind === 'divider'
               ? el('hr')
               : el(
-                  'p',
-                  { class: i.checked ? 'completed' : '' },
-                  `${mode ? (i.checked ? '☑' : '☐') : '•'} ${i.text}`,
+                  'div',
+                  { class: 'list-item-preview', 'data-list-item-id': i.id },
+                  el(
+                    'p',
+                    { class: i.checked ? 'completed' : '' },
+                    `${mode ? (i.checked ? '☑' : '☐') : '•'} `,
+                    linkedText(i.text),
+                  ),
+                  ...(record.attachments || [])
+                    .filter((a) => a.storage === 'drive' && a.item_id === i.id)
+                    .map((a) => assetView(a)),
                 ),
           ),
       );
@@ -92,7 +110,11 @@ export async function recordPreview(db, record, { onChanged = () => {}, onMoveWe
     [...record.content.matchAll(/assets\/([a-f0-9]{64})\./g)].map((m) => m[1]),
   );
   for (const attachment of record.attachments || [])
-    if (!referenced.has(attachment.id) && record.snapshot?.asset_id !== attachment.id)
+    if (
+      !(record.type === 'list' && attachment.storage === 'drive') &&
+      !referenced.has(attachment.id) &&
+      record.snapshot?.asset_id !== attachment.id
+    )
       root.append(assetView(attachment, assets));
   const tagStyles = await db.getState('ui:tag-styles', {});
   root.append(

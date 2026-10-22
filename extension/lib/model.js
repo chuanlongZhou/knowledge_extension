@@ -67,7 +67,55 @@ export const MIME_EXT = {
   'application/x-mimearchive': 'mhtml',
 };
 export const MAX_ASSET_BYTES = 20 * 1024 * 1024;
+export function drivePreviewUrl(fileId) {
+  if (typeof fileId !== 'string' || !/^[\w-]{1,200}$/.test(fileId))
+    throw new Error('Google Drive 文件 ID 不正确。');
+  return `https://drive.google.com/file/d/${fileId}/view`;
+}
 export function normalizeAttachment(input) {
+  if (input?.storage === 'drive') {
+    const keys = [
+      'id',
+      'kind',
+      'storage',
+      'name',
+      'mime_type',
+      'size_bytes',
+      'created_at',
+      'drive_file_id',
+      'drive_account_id',
+      'drive_folder_id',
+      'item_id',
+    ];
+    if (
+      Object.keys(input).some((key) => !keys.includes(key)) ||
+      !validId(input.id) ||
+      input.kind !== 'file' ||
+      typeof input.drive_folder_id !== 'string' ||
+      !/^[\w-]{1,200}$/.test(input.drive_folder_id) ||
+      typeof input.drive_account_id !== 'string' ||
+      !input.drive_account_id ||
+      input.drive_account_id.length > 200 ||
+      !Number.isSafeInteger(input.size_bytes) ||
+      input.size_bytes < 0 ||
+      (input.item_id != null && !validId(input.item_id))
+    )
+      throw new Error('云端附件格式不正确。');
+    drivePreviewUrl(input.drive_file_id);
+    return {
+      id: input.id,
+      kind: 'file',
+      storage: 'drive',
+      name: string(input.name, '附件名称', 500),
+      mime_type: string(input.mime_type, '附件类型', 100),
+      size_bytes: input.size_bytes,
+      created_at: date(input.created_at, '附件时间'),
+      drive_file_id: input.drive_file_id,
+      drive_account_id: input.drive_account_id,
+      drive_folder_id: input.drive_folder_id,
+      item_id: input.item_id ?? null,
+    };
+  }
   if (
     !input ||
     typeof input !== 'object' ||
@@ -251,6 +299,16 @@ export function normalizeRecord(input) {
     delete record.match_fields;
     record.snapshot = normalizeSnapshot(input.snapshot, record.attachments);
     record.list = normalizeList(input.list || [], input.schema_version);
+    if (
+      record.attachments.some(
+        (a) =>
+          a.storage === 'drive' &&
+          (record.type === 'list'
+            ? !record.list.some((item) => item.kind === 'item' && item.id === a.item_id)
+            : a.item_id !== null),
+      )
+    )
+      throw new Error('云端附件缺少对应的清单条目，或关联的记录类型不正确。');
     record.url_list = normalizeUrls(input.url_list || []);
     if (record.id === LIST_ID && record.type !== 'list')
       throw new Error('固定清单 ID 不能用于其他记录类型。');
@@ -579,6 +637,7 @@ export function searchText(record) {
     ...(record.url_list || []).flatMap((u) => [u.url, u.title]),
     ...record.tags,
     ...record.sources.map((s) => s.url),
+    ...(record.attachments || []).filter((a) => a.storage === 'drive').map((a) => a.name),
   ]
     .join('\n')
     .toLocaleLowerCase();
@@ -632,6 +691,17 @@ export function tombstone(record) {
 }
 export function toMarkdown(record) {
   if (record.kind === 'tombstone') return `<!-- 已移除当前内容：${record.id} -->`;
+  const cloudFiles = (record.attachments || []).filter((a) => a.storage === 'drive');
+  const cloudBody = cloudFiles.length
+    ? '\n\n## 文件附件\n\n' +
+      cloudFiles
+        .map((a) => {
+          const item = record.list?.find((item) => item.id === a.item_id);
+          const label = a.name.replace(/[\\\[\]\r\n]/g, '');
+          return `- ${item ? `${item.is_checkbox ? 'Todo' : 'Idea'}: ${item.text.replace(/[\r\n]/g, ' ')} — ` : ''}[${label}](${drivePreviewUrl(a.drive_file_id)})`;
+        })
+        .join('\n')
+    : '';
   const info = {
     id: record.id,
     type: record.type,
@@ -672,5 +742,5 @@ export function toMarkdown(record) {
     listBody && !(record.type === 'list' && record.content.trimEnd().endsWith(listBody.trimEnd()))
       ? '\n\n' + listBody
       : ''
-  }${record.url_list?.length ? '\n\n' + record.url_list.map((u) => `- ${u.removed_at ? '~~' : ''}[${u.title || u.url}](${u.url})${u.removed_at ? '~~（已删除）' : ''}${u.read_at ? '（已读）' : ''}`).join('\n') : ''}${record.snapshot ? `\n\n${record.snapshot.format === 'png' ? '!' : ''}[页面快照](${record.attachments.find((a) => a.id === record.snapshot.asset_id)?.path})` : ''}\n\n${record.sources.map((s) => `来源：${s.url}\n收集时间：${s.captured_at}`).join('\n\n')}`;
+  }${record.url_list?.length ? '\n\n' + record.url_list.map((u) => `- ${u.removed_at ? '~~' : ''}[${u.title || u.url}](${u.url})${u.removed_at ? '~~（已删除）' : ''}${u.read_at ? '（已读）' : ''}`).join('\n') : ''}${record.snapshot ? `\n\n${record.snapshot.format === 'png' ? '!' : ''}[页面快照](${record.attachments.find((a) => a.id === record.snapshot.asset_id)?.path})` : ''}${cloudBody}\n\n${record.sources.map((s) => `来源：${s.url}\n收集时间：${s.captured_at}`).join('\n\n')}`;
 }

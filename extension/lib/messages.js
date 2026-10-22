@@ -15,6 +15,40 @@ function decodeRows(text) {
 // Translation rows keep the original key, then English, French and Japanese.
 export const messages = Object.fromEntries(
   decodeRows(String.raw`
+可粘贴网页链接，或使用 [文字](https://example.com)。|Paste a web link, or use [text](https://example.com).|Collez un lien, ou utilisez [texte](https://example.com).|URL を貼り付けるか、[テキスト](https://example.com) を使えます。
+打开全部|Open all|Tout ouvrir|すべて開く
+网页列表|Website list|Liste des pages|ページ一覧
+网页列表读取失败，请刷新重试。|Could not load the website list. Refresh to retry.|Impossible de charger les pages. Actualisez pour réessayer.|ページ一覧を読み込めませんでした。更新してください。
+网页组已不存在或已删除。|This website group no longer exists or was deleted.|Ce groupe de pages n’existe plus ou a été supprimé.|このページグループは存在しないか削除されています。
+请重新加载扩展并允许标签页组权限。|Reload the extension and allow tab group access.|Rechargez l’extension et autorisez l’accès aux groupes d’onglets.|拡張機能を再読み込みし、タブグループへのアクセスを許可してください。
+网页组没有可打开的网页。|This group has no websites to open.|Ce groupe ne contient aucune page à ouvrir.|このグループに開けるページがありません。
+未命名标签页组|Untitled tab group|Groupe d’onglets sans titre|無題のタブグループ
+这个标签页组没有可收集的网页。|This tab group has no websites to collect.|Ce groupe d’onglets ne contient aucune page à collecter.|このタブグループに保存できるページがありません。
+当前窗口没有可收集的浏览器标签页组。|This window has no browser tab groups to collect.|Cette fenêtre ne contient aucun groupe d’onglets à collecter.|このウィンドウに保存できるタブグループがありません。
+选择要收集的浏览器标签页组。|Choose a browser tab group to collect.|Choisissez le groupe d’onglets à collecter.|保存するブラウザのタブグループを選択してください。
+收集活动标签页组|Collect active tab group|Collecter le groupe d’onglets actif|アクティブなタブグループを保存
+已收集“{0}”的 {1} 个网页，原标签页组保留。|Collected {1} websites from “{0}”. The original tab group is kept.|{1} pages collectées depuis « {0} ». Le groupe d’origine est conservé.|「{0}」から {1} ページを保存しました。元のタブグループは保持されます。
+{0}（{1} 个网页）|{0} ({1} websites)|{0} ({1} pages)|{0}（{1} ページ）
+添加文件|Add files|Ajouter des fichiers|ファイルを追加
+文件|Files|Fichiers|ファイル
+文件附件|File attachments|Pièces jointes|添付ファイル
+在 Google Drive 中预览|Preview in Google Drive|Prévisualiser dans Google Drive|Google Drive でプレビュー
+文件信息不正确，请重新选择。|Invalid file information. Select the file again.|Informations de fichier invalides. Sélectionnez à nouveau le fichier.|ファイル情報が無効です。再選択してください。
+请先在设置中登录 Google Drive 并选择数据文件夹，再添加文件。|Sign in to Google Drive and select a data folder in Settings before adding files.|Connectez-vous à Google Drive et choisissez un dossier dans les paramètres avant d’ajouter des fichiers.|設定で Google Drive にログインしてデータフォルダを選択してから、ファイルを追加してください。
+Google Drive 未返回上传地址，请重试。|Google Drive did not return an upload URL. Try again.|Google Drive n’a pas renvoyé d’adresse d’envoi. Réessayez.|Google Drive からアップロード先が返されませんでした。再試行してください。
+Google Drive 上传校验失败，请重试。|Google Drive upload verification failed. Try again.|La vérification de l’envoi vers Google Drive a échoué. Réessayez.|Google Drive のアップロード検証に失敗しました。再試行してください。
+Google Drive 上传进度异常，请重新选择文件。|Google Drive reported invalid upload progress. Select the file again.|Google Drive a signalé une progression incorrecte. Sélectionnez à nouveau le fichier.|Google Drive のアップロード進捗が無効です。ファイルを再選択してください。
+正在上传：{0}|Uploading: {0}|Envoi : {0}|アップロード中：{0}
+正在上传：{0}（{1}%）|Uploading: {0} ({1}%)|Envoi : {0} ({1} %)|アップロード中：{0}（{1}%）
+上传失败：{0} 请重新选择文件重试。|Upload failed: {0} Select the file again to retry.|Échec de l’envoi : {0} Sélectionnez à nouveau le fichier pour réessayer.|アップロードに失敗しました：{0} ファイルを再選択してください。
+文件已上传到 Google Drive。|Files uploaded to Google Drive.|Fichiers envoyés sur Google Drive.|Google Drive にアップロードしました。
+文件直接上传到 Google Drive，本机仅保留链接；查看时在 Drive 中预览。|Files upload directly to Google Drive. Only links are kept locally; previews open in Drive.|Les fichiers sont envoyés directement sur Google Drive. Seuls les liens sont conservés en local ; les aperçus s’ouvrent dans Drive.|ファイルは Google Drive に直接アップロードされます。ローカルにはリンクのみ保存し、Drive でプレビューします。
+每条 Todo / Idea 可添加多个文件，文件上传到 Google Drive，保存后同步关联。|Each Todo / Idea can have multiple files. Files upload to Google Drive; save to sync their links.|Chaque Todo / Idea peut avoir plusieurs fichiers. Ils sont envoyés sur Google Drive ; enregistrez pour synchroniser leurs liens.|各 Todo / Idea に複数のファイルを追加できます。Google Drive にアップロードし、保存すると関連付けが同期されます。
+记录已保存，附件关联尚未同步：{0} 请点击同步上传重试。|Record saved; attachment links are not synced yet: {0} Click Upload sync to retry.|Note enregistrée ; liens des pièces jointes non synchronisés : {0} Cliquez sur Synchroniser l’envoi pour réessayer.|記録は保存済みですが、添付の関連付けは未同期です：{0} 同期アップロードで再試行してください。
+记录与附件关联已同步到 Google Drive。|Record and attachment links synced to Google Drive.|Note et liens des pièces jointes synchronisés avec Google Drive.|記録と添付の関連付けを Google Drive に同期しました。
+附件关联存在云端冲突，请在设置中处理后重新同步。|Attachment links have a cloud conflict. Resolve it in Settings and sync again.|Les liens des pièces jointes présentent un conflit. Résolvez-le dans les paramètres puis synchronisez à nouveau.|添付の関連付けにクラウドの競合があります。設定で解決してから再同期してください。
+ · {0} 个文件| · {0} files| · {0} fichiers| · ファイル {0} 個
+每条记录最多添加 100 个附件。|Each record supports up to 100 attachments.|Chaque note accepte jusqu’à 100 pièces jointes.|各記録に最大 100 個のファイルを添付できます。
 打开启动页|Open start page|Ouvrir l’accueil|スタートページを開く
 启动页|Start page|Accueil|スタートページ
 打开启动页查看 Todo、Idea、喜欢的网页、待浏览网页组与项目。Dock 常用网站保存在当前浏览器。|Open the start page for Todo, Idea, favorite pages, unread groups and projects. Dock sites are saved in this browser.|Ouvrez l’accueil pour retrouver Todo, Idea, favoris, groupes à lire et projets. Les sites du Dock sont enregistrés dans ce navigateur.|スタートページで Todo、Idea、お気に入り、未読グループ、プロジェクトを表示します。Dock のサイトはこのブラウザに保存されます。

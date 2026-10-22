@@ -1,5 +1,27 @@
 # GUGA Knowledge 验证记录
 
+## 2026-10-22：Todo / Idea 链接、完整网页列表和原生标签页组
+
+- `npm test`：155 项通过。新增 5 项覆盖 HTTP / HTTPS 和 Markdown 链接、查询 / 片段 / 括号保留、不安全协议与凭证拒绝、整组打开顺序与失败回滚、活动浏览器组筛选和加载中标签页的 pendingUrl 收集。
+- `npm run test:tab-groups-browser`：6 项通过。使用真实 Chrome tabs / tabGroups API 和本机 HTTP 网页，验证完整 12 条网页列表可滚动、第五条之后可标记已读且保留滚动位置、新建同名组并顺序打开 11 条有效网页（包含已读、排除已删除）、侧栏直接收集活动组三页且保留原组、整理页多组选择，以及启动页 / 清单编辑器 / 预览中的可点击链接。
+- 原有启动页与排序 9 项、UI 交互 9 项、文件附件 6 项、编辑器 CSP 4 项浏览器检查通过。页面和控制台回归保留此前的样式安全修复；新增链接用文本节点和经过校验的 URL 生成，不解析用户 HTML。
+- `npm run lint`、修改文件的 Prettier 和 `git diff --check` 通过。新增回归接入 CI；发行目录和 ZIP 重新生成，清单加入 `tabGroups` 权限用于读取和创建浏览器组，Google 授权配置保持不变。
+
+## 2026-10-22：CodeMirror 内嵌样式 CSP 违规
+
+- 使用发行目录复现：打开记录触发 `securitypolicyviolation`，`effectiveDirective` 为 `style-src-elem`，被拦截资源为 `inline`。
+- 清单新增 `style-src-elem 'self' 'unsafe-inline'`，允许 CodeMirror 动态样式表；脚本与 HTML 样式属性沿用原有 `'self'` 限制。未修改 Google 身份、账号配置或数据。
+- `npm run test:editor-csp-browser` 四项通过：新建记录 / 实时编辑 / 搜索样式、重复打开和简单修改、侧栏编辑器、Markdown 净化。前三项直接断言 CSP 事件和错误控制台为空，并验证实际计算样式；恶意 HTML 净化测试引发的预期 CSP 防御日志单独记录，不计入编辑器错误。
+- `npm test` 150 项通过；`npm run lint`、发行包清单和格式检查通过。新增浏览器回归与 CSP 清单断言接入 CI，重新生成解压目录和商店 ZIP。
+
+## 2026-10-22：普通记录、Todo / Idea 云端文件附件
+
+- `npm test`：150 项通过，包含 7 项新增附件测试。验证分块上传不调用所选 File 的 arrayBuffer / text、不写本地附件 Blob、零字节文件、多个文件与清单条目关联、跨设备同步跳过文件下载、ZIP / Markdown 仅保留链接、账号绑定与失败处理、关联项目依赖及上传地址校验。
+- `npm run test:attachments-browser`：6 项通过，包含普通记录、Todo / Idea、启动页、Drive 预览跳转、上传期间保存等待、两个旧视图追加文件不互相覆盖、移除关联保留原文件、配额失败与重新选择重试、窄屏布局。IndexedDB 没有文件 Blob，也没有附件正文下载请求。
+- `npm run test:drive-browser`：11 项通过；普通 UI 交互 9 项、启动页与排序 9 项通过，共 35 项隔离浏览器检查。修正旧 Drive 测试中已过时的图片容器选择器，改为通过图片可访问名称检查解码与宽度；图片实际显示正常。
+- `npm run lint`、修改文件的 Prettier 检查、`git diff --check` 通过。发行包由 `npm run build` 重新生成并执行商店包验证，保留原有扩展身份和 OAuth 配置。
+- 浏览器 Drive 传输使用本机 HTTP 模拟服务，预览页使用固定测试页面；未调用真实 Google 账号。真实 OAuth / Drive 读写仍需使用实际账号验收。
+
 ## 2026-10-20：0.9.2 商店版 Google 登录配置
 
 - 商店公开 ID 为 `hmlcjcejioggaegkahdnbgpnajchhlbl`；将发布者提供的新 Chrome 扩展 OAuth 客户端 ID 写入清单，并将版本升至 0.9.2，以便更新现有商店条目。随后用发布者提供的商店公钥替换原开发公钥；SHA-256 推导的开发版 ID 已与商店 ID 一致。公钥仅在本地解压目录保留。

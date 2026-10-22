@@ -14,6 +14,7 @@
     "storage",
     "unlimitedStorage",
     "tabs",
+    "tabGroups",
     "activeTab",
     "scripting",
     "contextMenus",
@@ -55,7 +56,7 @@
     }
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'self' https: http:; img-src 'self' data: blob: https: http:; media-src 'self' blob:; style-src 'self'; base-uri 'none'"
+    "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'self' https: http:; img-src 'self' data: blob: https: http:; media-src 'self' blob:; style-src 'self'; style-src-elem 'self' 'unsafe-inline'; base-uri 'none'"
   },
   "optional_host_permissions": [
     "<all_urls>"

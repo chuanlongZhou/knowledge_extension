@@ -221,6 +221,7 @@ async function pull(db, drive, binding, files, links) {
       .map((file) => [file.appProperties.asset_id, file]),
   );
   await mapConcurrent([...assets.values()], 4, async (descriptor) => {
+    if (descriptor.storage === 'drive') return;
     if ((await db.getAsset(descriptor.id))?.blob) return;
     const file = assetFiles.get(descriptor.id);
     if (!file) throw new Error(msg`云端缺少附件“${descriptor.name}”，下载未覆盖记录。`);
@@ -252,7 +253,7 @@ async function pull(db, drive, binding, files, links) {
     assetsDownloaded: stats.assetsDownloaded,
   };
 }
-async function push(db, drive, binding, files, links) {
+async function push(db, drive, binding, files, links, recordIds) {
   const stats = { fetched: 0, cached: 0 };
   let layout;
   const target = async (file) => {
@@ -261,6 +262,21 @@ async function push(db, drive, binding, files, links) {
   };
   const conflicts = [],
     pending = await db.syncRows();
+  const selected = recordIds ? new Set(recordIds) : null;
+  if (selected) {
+    const rows = new Map(pending.map((row) => [row.record.id, row.record]));
+    // Include required project/graph records so a fresh device can validate the batch.
+    for (const id of selected) {
+      const record = rows.get(id);
+      if (!record || record.kind === 'tombstone') continue;
+      for (const projectId of record.project_ids || []) selected.add(projectId);
+      if (record.parent_project_id) selected.add(record.parent_project_id);
+      for (const edge of record.graph?.edges || []) {
+        selected.add(edge.source);
+        selected.add(edge.target);
+      }
+    }
+  }
   let uploaded = 0,
     skipped = 0,
     metadataUploaded = 0,
@@ -269,6 +285,7 @@ async function push(db, drive, binding, files, links) {
     files.filter((f) => f.appProperties?.pkm_role === 'asset').map((f) => f.appProperties.asset_id),
   );
   for (const local of pending) {
+    if (selected && !selected.has(local.record.id)) continue;
     const id = local.record.id,
       base = links.get(id);
     if (local.hash === base?.hash && !base.needsConsolidation && !base.acceptedHashes) continue;
@@ -289,6 +306,7 @@ async function push(db, drive, binding, files, links) {
     }
     // Publish attachments before the record that references them.
     for (const descriptor of local.record.attachments || []) {
+      if (descriptor.storage === 'drive') continue;
       if (existing.has(descriptor.id)) continue;
       const blob = (await db.getAsset(descriptor.id))?.blob;
       if (
@@ -347,7 +365,9 @@ async function push(db, drive, binding, files, links) {
     uploaded,
     metadataUploaded,
     shortcutsUploaded,
-    conflicts: conflicts.length,
+    conflicts: selected
+      ? conflicts.filter((conflict) => selected.has(conflict.id)).length
+      : conflicts.length,
     missingRemote: skipped,
     recordsFetched: stats.fetched,
     recordsCached: stats.cached,
@@ -356,7 +376,7 @@ async function push(db, drive, binding, files, links) {
 export async function syncDrive(
   db,
   direction,
-  { drive = new GoogleDrive(), locks = globalThis.navigator?.locks } = {},
+  { drive = new GoogleDrive(), locks = globalThis.navigator?.locks, recordIds } = {},
 ) {
   if (!['download', 'upload'].includes(direction)) throw new Error(t('同步方向无效。'));
   const run = async () => {
@@ -370,7 +390,7 @@ export async function syncDrive(
       const result =
         direction === 'download'
           ? await pull(db, drive, binding, files, links)
-          : await push(db, drive, binding, files, links);
+          : await push(db, drive, binding, files, links, recordIds);
       await db.setState('drive:last', { ...result, direction, at: new Date().toISOString() });
       await db.setState('drive:error', null);
       return result;

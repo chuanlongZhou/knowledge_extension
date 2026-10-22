@@ -14,6 +14,7 @@ export class MockDirectDrive {
     this.items = new Map();
     this.serial = 0;
     this.calls = [];
+    this.uploads = new Map();
     this.race = null;
     this.loseResponse = false;
   }
@@ -30,6 +31,7 @@ export class MockDirectDrive {
       });
     const meta = (file) => ({
       ...file,
+      size: String(file.bytes?.length || 0),
       bytes: undefined,
       etag: `"v${file.revision}"`,
       version: String(file.revision),
@@ -45,6 +47,52 @@ export class MockDirectDrive {
         },
       });
     if (target.pathname.endsWith('/generateIds')) return json({ ids: [`file_${++this.serial}`] });
+    if (target.searchParams.get('uploadType') === 'resumable' && method === 'POST') {
+      const metadata = JSON.parse(options.body);
+      this.uploads.set(metadata.id, {
+        metadata,
+        owner: accountId,
+        chunks: [],
+        size: 0,
+        total: Number(headers.get('X-Upload-Content-Length')),
+      });
+      return new Response(null, {
+        status: 200,
+        headers: {
+          Location: `https://www.googleapis.com/upload/drive/v3/files?upload_id=${metadata.id}`,
+        },
+      });
+    }
+    if (target.searchParams.has('upload_id')) {
+      const session = this.uploads.get(target.searchParams.get('upload_id'));
+      if (!session || session.owner !== accountId) return json({}, 404);
+      const bytes = new Uint8Array(await options.body.arrayBuffer());
+      const range = headers.get('Content-Range');
+      if (session.total && !range?.startsWith(`bytes ${session.size}-`)) return json({}, 400);
+      session.chunks.push(bytes);
+      session.size += bytes.length;
+      if (session.size < session.total)
+        return new Response(null, {
+          status: 308,
+          headers: { Range: `bytes=0-${session.size - 1}` },
+        });
+      const body = new Uint8Array(session.size);
+      let offset = 0;
+      for (const chunk of session.chunks) {
+        body.set(chunk, offset);
+        offset += chunk.length;
+      }
+      const file = {
+        ...session.metadata,
+        owner: accountId,
+        bytes: body,
+        revision: 1,
+        trashed: false,
+      };
+      this.items.set(file.id, file);
+      this.uploads.delete(file.id);
+      return json(meta(file));
+    }
     const match = target.pathname.match(/\/files\/([^/]+)$/);
     if (match) {
       const file = this.items.get(match[1]);

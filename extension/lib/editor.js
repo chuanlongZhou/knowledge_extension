@@ -1,12 +1,15 @@
 import { t, msg } from './i18n.js';
 import { TYPES, newRecord, upgradeRecord, normalizeRecord, safeUrl } from './model.js';
-import { el, button, field, markdownPreview, assetView } from './dom.js';
+import { el, button, field, markdownPreview, assetView, linkedText } from './dom.js';
 import { mediaComposer } from './media.js';
+import { fileAttachmentComposer } from './file-attachments.js';
 import { loadAsset } from './assets.js';
 import { mergeUrls, listMarkdown, listDocument, parseListMarkdown } from './collections.js';
 import { icon } from './icons.js';
 import { websiteTitle, websiteLink, websiteLabel, isPlaceholderTitle } from './websites.js';
 import { openWebsiteTabs, websiteItem, droppedWebsites, closeCapturedTabs } from './tabs.js';
+import { browserTabGroups, captureBrowserTabGroup } from './tabs.js';
+import { websiteGroupOpener } from './website-group-actions.js';
 import { cacheDraft, clearDraft } from './drafts.js';
 import { appendCollected } from './collected.js';
 import { createMarkdownEditor } from './markdown-vendor.js';
@@ -177,7 +180,7 @@ export function createEditor(
   renderTags();
   const preview = el('div', { class: 'markdown-live-preview', hidden: true }),
     media = mediaComposer(db, content, {
-      attachments: record.attachments,
+      attachments: record.attachments.filter((a) => a.storage !== 'drive'),
       selection: () => (previewing ? markdownEditor?.selection : undefined),
       onChange: () => {
         dirty = true;
@@ -193,6 +196,15 @@ export function createEditor(
     snapshotPane = el('section', { 'data-pane': 'snapshot' }),
     listPane = el('section', { 'data-pane': 'list' }),
     groupPane = el('section', { 'data-pane': 'website_group' });
+  const files = fileAttachmentComposer(db, {
+    recordId: record.id,
+    attachments: record.attachments,
+    itemExists: (itemId) => itemId === null || items.some((item) => item.id === itemId),
+    onChange: async () => {
+      changed();
+      await flush();
+    },
+  });
   markdownEditor = createMarkdownEditor(
     codeHost,
     content.value,
@@ -320,6 +332,12 @@ export function createEditor(
     ),
     el('div', { class: 'markdown-editor-layout' }, content, codeHost, preview),
     media.root,
+    files.control(),
+    el(
+      'small',
+      { class: 'muted' },
+      t('文件直接上传到 Google Drive，本机仅保留链接；查看时在 Drive 中预览。'),
+    ),
     field(t('来源'), source),
   );
   const snapshotDisplay = el('div', { class: 'snapshot-display' });
@@ -432,6 +450,7 @@ export function createEditor(
             icon('trash'),
             () => {
               items = items.filter((i) => i.id !== item.id);
+              files.removeItem(item.id);
               renderList();
               changed();
             },
@@ -446,9 +465,14 @@ export function createEditor(
             maxlength: 5000,
             'aria-label': msg`清单内容 ${item.text}`,
           });
+          const links = el('div', { class: 'list-item-links' });
+          const renderLinks = () =>
+            links.replaceChildren(linkedText(item.text, { linksOnly: true }));
+          renderLinks();
           text.addEventListener('input', () => {
             item.text = text.value;
             listMd.value = listMarkdown(items, listMode);
+            renderLinks();
           });
           text.addEventListener('keydown', (event) => {
             if (event.key === 'Enter' && !event.isComposing) {
@@ -470,7 +494,13 @@ export function createEditor(
               })
             : el('span', {}, '•');
           text.classList.toggle('completed', item.checked);
-          return el('div', { class: 'list-composer-row' }, check, text, remove);
+          return el(
+            'div',
+            { class: 'list-item-editor', 'data-list-item-id': item.id },
+            el('div', { class: 'list-composer-row' }, check, text, remove),
+            links,
+            files.control(item.id),
+          );
         }),
     );
     listMd.placeholder = listMode
@@ -478,7 +508,10 @@ export function createEditor(
       : t('- 写下一条想法\n- 另一条想法\n---');
   }
   listMd.addEventListener('input', () => {
+    const previous = items;
     items = parseListMarkdown(listMd.value, listMode, items);
+    for (const item of previous)
+      if (!items.some((next) => next.id === item.id)) files.removeItem(item.id);
     const selection = [listMd.selectionStart, listMd.selectionEnd];
     renderList();
     listMd.setSelectionRange(...selection);
@@ -493,10 +526,16 @@ export function createEditor(
         '逐行输入，按 Enter 添加。Todo 自动生成复选框，Idea 生成条目；--- 生成分隔线。内容保存为 Markdown。',
       ),
     ),
+    el(
+      'small',
+      { class: 'muted' },
+      t('每条 Todo / Idea 可添加多个文件，文件上传到 Google Drive，保存后同步关联。'),
+    ),
     listRows,
     listEntry,
     el('details', { class: 'list-source' }, el('summary', {}, t('Markdown 源码')), listMd),
   );
+  listEntry.title = t('可粘贴网页链接，或使用 [文字](https://example.com)。');
   const urlRows = el('div', { class: 'url-editor' }),
     urlInput = el('input', { type: 'url', name: 'website_url', placeholder: t('粘贴网页链接') }),
     urlTitle = el('input', {
@@ -558,6 +597,39 @@ export function createEditor(
     renderUrls();
     changed();
     status.textContent = msg`已加入 ${values.length} 个网页，保存成功后才关闭标签页。`;
+  }
+  async function collectBrowserGroup(groupId) {
+    const captured = await captureBrowserTabGroup(groupId);
+    if (disposed) return;
+    if (!title.value.trim()) title.value = captured.title;
+    closeTabs.checked = false;
+    addUrls(captured.items, captured.tabs);
+    tabDrawer.hidden = true;
+    status.textContent = msg`已收集“${captured.title}”的 ${captured.items.length} 个网页，原标签页组保留。`;
+    await flush();
+  }
+  async function chooseBrowserGroup() {
+    error.textContent = '';
+    const groups = await browserTabGroups();
+    if (disposed) return;
+    if (!groups.length) throw new Error(t('当前窗口没有可收集的浏览器标签页组。'));
+    const active = groups.find((group) => group.active);
+    if (active || groups.length === 1) return collectBrowserGroup((active || groups[0]).id);
+    tabDrawer.hidden = false;
+    changed();
+    tabDrawer.replaceChildren(
+      el('p', { class: 'description' }, t('选择要收集的浏览器标签页组。')),
+      ...groups.map((group) =>
+        button(
+          msg`${group.title}（${group.tabs.length} 个网页）`,
+          () =>
+            collectBrowserGroup(group.id).catch((cause) => {
+              error.textContent = cause.message;
+            }),
+          'button small browser-group-choice',
+        ),
+      ),
+    );
   }
   async function chooseTabs(persist = true) {
     tabDrawer.hidden = false;
@@ -683,6 +755,15 @@ export function createEditor(
       () => chooseTabs().catch((e) => (error.textContent = e.message)),
       'button small',
     ),
+    button(
+      t('收集活动标签页组'),
+      () =>
+        chooseBrowserGroup().catch((cause) => {
+          error.textContent = cause.message;
+        }),
+      'button small',
+    ),
+    websiteGroupOpener(() => ({ title: title.value.trim(), url_list: urls })),
     tabDrawer,
     dropZone,
     el('label', { class: 'checkbox-line' }, closeTabs, t('保存后关闭加入的标签页')),
@@ -811,7 +892,7 @@ export function createEditor(
         ),
       ],
       sources,
-      attachments: media.attachments,
+      attachments: [...media.attachments, ...files.attachments],
       organization_state: row?.rev && organization.checked ? 'organized' : 'inbox',
       snapshot: record.type === 'snapshot' ? snapshot : null,
       list: record.type === 'list' ? items : [],
@@ -855,7 +936,8 @@ export function createEditor(
       !source.value.trim() &&
       !items.length &&
       !urls.length &&
-      !media.attachments.length
+      !media.attachments.length &&
+      !files.attachments.length
     ) {
       await clearDraft(db, draftKey);
       return;
@@ -880,6 +962,7 @@ export function createEditor(
       if (!(await addEnteredTag())) return;
       if (media.recording) throw new Error(t('请先停止录音。'));
       await media.settle();
+      await files.settle();
       if (record.type === 'list') commitEntry();
       const value = normalizeRecord(values());
       if (value.type === 'snapshot' && !value.snapshot) throw new Error(t('请先捕获网页快照。'));
@@ -901,7 +984,12 @@ export function createEditor(
       } else if (closeTabs.checked && pendingTabs.length) {
         const closed = await closeCapturedTabs(pendingTabs, value);
         status.textContent = msg`已保存并关闭 ${closed.closed.length} 个标签页${closed.skipped.length ? t('；导航变化或无法关闭的标签页已保留') : ''}`;
-      } else status.textContent = t('已保存到本机，等待同步。');
+      } else
+        status.textContent = result?.syncError
+          ? msg`记录已保存，附件关联尚未同步：${result.syncError} 请点击同步上传重试。`
+          : result?.attachmentsSynced
+            ? t('记录与附件关联已同步到 Google Drive。')
+            : t('已保存到本机，等待同步。');
       await clearDraft(db, draftKey);
       if (closeSourceKey) await db.setState(closeSourceKey, null);
       disposed = true;
@@ -976,7 +1064,8 @@ export function createEditor(
               [...source.value.split('\n'), ...incoming.sources.map((s) => s.url)].filter(Boolean),
             ),
           ].join('\n');
-          media.setAttachments(next.attachments);
+          media.setAttachments(next.attachments.filter((a) => a.storage !== 'drive'));
+          files.setAttachments(next.attachments);
           collectedIds.add(nonce);
           if (previewing) {
             preview.querySelector('.markdown')?.dispose?.();
@@ -1000,6 +1089,7 @@ export function createEditor(
       disposed = true;
       clearTimeout(timer);
       media.destroy();
+      files.destroy();
       markdownEditor.destroy();
       unsubscribeTags();
       preview.querySelector('.markdown')?.dispose?.();

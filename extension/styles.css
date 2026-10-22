@@ -937,6 +937,44 @@ dialog::backdrop {
   display: block;
   margin: 8px 0;
 }
+.file-attachments {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0;
+  min-width: 0;
+}
+.file-attachment-gallery,
+.list-item-editor {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.list-item-editor > .file-attachments {
+  margin: 0 0 8px 24px;
+}
+.file-attachment-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.drive-attachment {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.drive-attachment a {
+  overflow-wrap: anywhere;
+}
+.list-preview-line:has(.drive-attachment) {
+  flex-wrap: wrap;
+}
+.list-preview-line > .drive-attachment {
+  flex-basis: 100%;
+  margin-left: 24px;
+}
 .media-composer {
   margin: 12px 0 20px;
   padding: 12px;
@@ -1527,6 +1565,46 @@ body[data-mode='panel'] .conflict-columns {
 .typed-preview {
   margin-top: 13px;
   font-size: 15px;
+}
+.website-card-list {
+  max-height: 320px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  min-width: 0;
+}
+.website-preview-list {
+  max-height: min(60vh, 620px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  min-width: 0;
+}
+.website-group-actions {
+  margin: 8px 0;
+}
+.linked-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.linked-text a {
+  overflow-wrap: anywhere;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.list-item-links {
+  margin-left: 24px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.list-item-links a + a {
+  margin-left: 12px;
+}
+.list-item-links:not(:has(a)) {
+  display: none;
+}
+.browser-group-choice {
+  margin: 4px;
 }
 .list-preview-line,
 .website-preview-line {

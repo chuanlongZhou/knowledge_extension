@@ -4,8 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test tests/core.test.js tests/media.test.js tests/types.test.js tests/examples.test.js tests/collected.test.js tests/projects.test.js tests/stability.test.js tests/drive.test.js tests/mascot.test.js tests/backup-layout.test.js tests/start-and-order.test.js tests/i18n.test.js",
+    "test": "node --test tests/core.test.js tests/media.test.js tests/types.test.js tests/examples.test.js tests/collected.test.js tests/projects.test.js tests/stability.test.js tests/drive.test.js tests/attachments.test.js tests/tab-groups-and-links.test.js tests/mascot.test.js tests/backup-layout.test.js tests/start-and-order.test.js tests/i18n.test.js",
     "test:browser": "node tests/direct-drive-browser.mjs",
+    "test:attachments-browser": "node tests/attachments-browser.mjs",
+    "test:editor-csp-browser": "node tests/editor-csp-browser.mjs",
+    "test:tab-groups-browser": "node tests/tab-groups-browser.mjs",
     "test:ui-browser": "node tests/ui-interactions-browser.mjs",
     "test:collection-browser": "node tests/collection-browser.mjs",
     "build": "node scripts/build.mjs && node tests/store-package.mjs",

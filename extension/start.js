@@ -1,8 +1,10 @@
 import { t, msg, getLanguage } from './lib/i18n.js';
 import { Database } from './lib/db.js';
-import { LIST_ID, upgradeRecord, newRecord, displayType } from './lib/model.js';
+import { LIST_ID, upgradeRecord, newRecord, displayType, drivePreviewUrl } from './lib/model.js';
 import { singletonList, migrateTodos } from './lib/collections.js';
 import { editStartList } from './lib/start-list.js';
+import { fileAttachmentComposer } from './lib/file-attachments.js';
+import { driveCommand } from './lib/drive-ui.js';
 import {
   START_KEY,
   readStartConfig,
@@ -11,7 +13,9 @@ import {
 } from './lib/start-config.js';
 import { installTheme } from './lib/theme.js';
 import { recordPreview } from './lib/record-preview.js';
-import { el, button, field, closeOnBackdrop } from './lib/dom.js';
+import { el, button, field, closeOnBackdrop, linkedText } from './lib/dom.js';
+import { textLinkParts } from './lib/text-links.js';
+import { websiteGroupOpener } from './lib/website-group-actions.js';
 import { favicon, websiteLink } from './lib/websites.js';
 import { PINNED_RECORDS, togglePinnedRecord } from './lib/pins.js';
 import { animateSortReflow, moveSortItem, setSortDragImage } from './lib/sort-feedback.js';
@@ -106,6 +110,16 @@ const date = (value) =>
 const isDivider = (item) => item.kind === 'divider' || /^([-*_])\1{2,}$/.test(item.text.trim());
 const DOCK_DRAG_TYPE = 'application/x-guga-shortcut';
 
+function taskText(item, mode) {
+  if (!textLinkParts(item.text).some((part) => part.href))
+    return button(item.text, (event) => editListItem(item, mode, event.currentTarget), 'task-text');
+  const text = el('div', { class: 'task-text' }, linkedText(item.text));
+  text.addEventListener('click', (event) => {
+    if (!event.target.closest('a')) editListItem(item, mode, text);
+  });
+  return text;
+}
+
 function renderList(record) {
   const todos = record.list.filter((item) => item.is_checkbox);
   const ideas = record.list.filter((item) => !item.is_checkbox);
@@ -122,7 +136,11 @@ function renderList(record) {
             const divider = isDivider(item);
             const remove = button(
               '×',
-              act(() => editStartList(db, (list) => list.filter((entry) => entry.id !== item.id))),
+              act(async () => {
+                await editStartList(db, (list) => list.filter((entry) => entry.id !== item.id));
+                if (record.attachments.some((a) => a.storage === 'drive' && a.item_id === item.id))
+                  await syncListAttachments();
+              }),
               'start-task-delete',
             );
             remove.setAttribute(
@@ -161,16 +179,88 @@ function renderList(record) {
                     }),
                   })
                 : el('span', { class: 'idea-bullet', 'aria-hidden': 'true' }, '•'),
+              taskText(item, mode),
+              textLinkParts(item.text).some((part) => part.href)
+                ? button(
+                    t('编辑'),
+                    (event) =>
+                      editListItem(
+                        item,
+                        mode,
+                        event.currentTarget.parentElement.querySelector('.task-text'),
+                      ),
+                    'start-task-edit',
+                  )
+                : null,
               button(
-                item.text,
-                (event) => editListItem(item, mode, event.currentTarget),
-                'task-text',
+                t('文件'),
+                act(() => openItemFiles(item.id)),
+                'start-task-files',
               ),
               remove,
+              ...record.attachments
+                .filter((a) => a.storage === 'drive' && a.item_id === item.id)
+                .map((a) =>
+                  el(
+                    'a',
+                    {
+                      class: 'start-file-link',
+                      href: drivePreviewUrl(a.drive_file_id),
+                      target: '_blank',
+                      rel: 'noopener noreferrer',
+                    },
+                    a.name,
+                  ),
+                ),
             );
           })
         : [empty(mode ? t('给今天留下一件想完成的事。') : t('灵感不必完整，先记下来。'))]),
     );
+}
+async function syncListAttachments() {
+  const result = await driveCommand('sync', { direction: 'upload', recordIds: [LIST_ID] });
+  if (result.conflicts || result.missingRemote)
+    throw new Error(t('附件关联存在云端冲突，请在设置中处理后重新同步。'));
+}
+async function openItemFiles(itemId) {
+  const row = await singletonList(db);
+  const item = row.record.list.find((item) => item.id === itemId && item.kind === 'item');
+  if (!item) throw new Error(t('这条内容已在另一窗口移除。'));
+  let files;
+  const { body, footer, dialog } = modal(t('文件附件'), { onClose: () => files?.destroy() });
+  files = fileAttachmentComposer(db, {
+    recordId: LIST_ID,
+    attachments: row.record.attachments,
+    onChange: async ({ added, removed }) => {
+      await db.mutate(LIST_ID, (record) => {
+        if (!record.list.some((item) => item.id === itemId && item.kind === 'item'))
+          throw new Error(t('这条内容已在另一窗口移除。'));
+        return {
+          ...record,
+          attachments: [
+            ...record.attachments.filter((a) => !removed.includes(a.id)),
+            ...added.filter((a) => !record.attachments.some((existing) => existing.id === a.id)),
+          ],
+          updated_at: new Date().toISOString(),
+        };
+      });
+      try {
+        await syncListAttachments();
+      } catch (error) {
+        notify(msg`记录已保存，附件关联尚未同步：${error.message} 请点击同步上传重试。`);
+      }
+    },
+  });
+  body.append(
+    el('p', {}, item.text),
+    files.control(itemId),
+    el(
+      'small',
+      { class: 'muted' },
+      t('文件直接上传到 Google Drive，本机仅保留链接；查看时在 Drive 中预览。'),
+    ),
+  );
+  footer.append(button(t('关闭'), () => dialog.close()));
 }
 function editListItem(item, mode, label) {
   const editor = el('textarea', {
@@ -189,14 +279,21 @@ function editListItem(item, mode, label) {
     if (finished) return;
     finished = true;
     const value = editor.value.trim();
-    editor.replaceWith(label);
-    if (!save) return;
+    if (!save) {
+      editor.replaceWith(label);
+      return;
+    }
     if (!value) {
+      editor.replaceWith(label);
       notify(t('请填写内容。'));
       return;
     }
-    if (value === item.text) return;
-    label.textContent = value;
+    if (value === item.text) {
+      editor.replaceWith(label);
+      return;
+    }
+    const nextLabel = taskText({ ...item, text: value }, mode);
+    editor.replaceWith(nextLabel);
     try {
       await editStartList(db, (list) => {
         const target = list.find((entry) => entry.id === item.id);
@@ -206,7 +303,7 @@ function editListItem(item, mode, label) {
       });
       schedule();
     } catch (error) {
-      label.textContent = item.text;
+      nextLabel.replaceWith(label);
       notify(error.message);
     }
   };
@@ -252,6 +349,7 @@ for (const mode of ['todo', 'idea']) {
         submit.disabled = false;
       });
   });
+  $(mode + '-input').title = t('可粘贴网页链接，或使用 [文字](https://example.com)。');
   $('open-' + mode).addEventListener(
     'click',
     act(() => openRecord(LIST_ID)),
@@ -686,6 +784,7 @@ async function refresh() {
                   .slice(0, 3)
                   .map(websiteLink),
               ),
+              websiteGroupOpener(async () => (await db.get(record.id))?.record),
             ],
             () => openRecord(record.id),
             'group-card',

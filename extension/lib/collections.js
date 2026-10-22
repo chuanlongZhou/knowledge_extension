@@ -223,5 +223,15 @@ export function parseListMarkdown(text, mode, existing = []) {
         checked: mode && !!checkbox && checkbox[1].toLowerCase() === 'x',
       };
     });
+  // Match unchanged rows first (including reorder), then retain IDs for text edits.
+  // This keeps file associations attached to the same item in Markdown mode.
+  if (parsed.length === pool.length) {
+    const remaining = pool.filter((old) => !used.has(old.id));
+    for (const item of parsed) {
+      if (used.has(item.id)) continue;
+      const index = remaining.findIndex((old) => old.kind === item.kind);
+      if (index !== -1) item.id = remaining.splice(index, 1)[0].id;
+    }
+  }
   return [...existing.filter((i) => i.is_checkbox !== mode), ...parsed];
 }
